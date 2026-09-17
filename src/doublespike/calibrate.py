@@ -2,8 +2,9 @@
 
 import numpy as np
 from scipy.optimize import minimize
-from .isodata import normalise_composition, realproptoratioprop, ratioproptorealprop
+
 from .errors import calcratiocov
+from .isodata import normalise_composition, ratioproptorealprop, realproptoratioprop
 
 
 def spike_calibration(

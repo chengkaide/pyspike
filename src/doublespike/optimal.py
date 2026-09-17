@@ -3,7 +3,6 @@
 import itertools
 
 import numpy as np
-
 from scipy.special import binom
 
 from .errors import errorestimate, errorestimate_many

@@ -1,9 +1,9 @@
 """Plotting routines using matplotlib."""
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from .errors import errorestimate, errorestimate_many
+from .errors import errorestimate_many
 from .optimal import optimalspike
 
 

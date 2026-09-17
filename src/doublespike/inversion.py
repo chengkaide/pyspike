@@ -507,7 +507,7 @@ def dsinversion(isodata, measured, spike=None, isoinv=None, standard=None):
     Example:
         >>> dsinversion(IsoData('Fe'), measured, [0, 0, 0.5, 0.5], [54, 56, 57, 58])
     """
-    from .isodata import ratioproptorealprop, normalise_composition, ratio
+    from .isodata import normalise_composition, ratio, ratioproptorealprop
 
     # Get data from isodata if not supplied as arguments
     if spike is None:
@@ -529,7 +529,7 @@ def dsinversion(isodata, measured, spike=None, isoinv=None, standard=None):
     standard = np.array(standard, dtype=float)
     isoinv = np.array(isoinv, dtype=int)
     if isoinv.size != 4:
-        raise Exception("Need exactly 4 inversion isotopes, got %d" % isoinv.size)
+        raise Exception(f"Need exactly 4 inversion isotopes, got {isoinv.size}")
 
     # Duplicate so all matrices same size
     nspike, nstandard, nmeasured = 1, 1, 1

@@ -42,16 +42,37 @@ Classes:
 __version__ = "1.1.0"
 __author__ = "John F. Rudge"
 
-from .isodata import IsoData
+__all__ = [
+    "IsoData",
+    "cocktail",
+    "dscorrection",
+    "dscorrection_legacy",
+    "dscorrection_newton",
+    "dsinversion",
+    "errorcurve",
+    "errorcurve2",
+    "errorcurve2d",
+    "errorcurveoptimalspike",
+    "errorestimate",
+    "errorestimate_many",
+    "monterun",
+    "optimalspike",
+    "ratiodata",
+    "sensitivity",
+    "singleoptimalspike",
+    "spike_calibration",
+]
+
+from .calibrate import spike_calibration
+from .cocktail import cocktail
+from .errors import errorestimate, errorestimate_many, ratiodata, sensitivity
 from .inversion import (
     dscorrection,
     dscorrection_legacy,
     dscorrection_newton,
     dsinversion,
 )
+from .isodata import IsoData
 from .monte import monterun
-from .cocktail import cocktail
-from .errors import errorestimate, errorestimate_many, ratiodata, sensitivity
 from .optimal import optimalspike, singleoptimalspike
 from .plotting import errorcurve, errorcurve2, errorcurve2d, errorcurveoptimalspike
-from .calibrate import spike_calibration

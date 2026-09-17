@@ -1,7 +1,9 @@
 """Module for computing cocktail lists of optimal spikes."""
 
 import csv
+
 import numpy as np
+
 from .isodata import IsoData, default_data
 from .optimal import optimalspike
 
@@ -62,8 +64,10 @@ def cocktail(type_="pure", filename="cocktails.csv", isodatas=None):
 
             isoname = isodata.isoname
 
-            def iname(i):
-                return isoname[i]
+            def iname(i, names=isoname):
+                # bound as a default argument so the closure does not capture the
+                # loop variable (flake8-bugbear B023)
+                return names[i]
 
             fv = np.vectorize(iname)
             optisonams = fv(optisoinv)
