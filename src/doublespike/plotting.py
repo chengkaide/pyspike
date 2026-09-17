@@ -1,8 +1,50 @@
 """Plotting routines using matplotlib."""
+
 import numpy as np
 import matplotlib.pyplot as plt
-from .errors import errorestimate
+
+from .errors import errorestimate, errorestimate_many
 from .optimal import optimalspike
+
+
+def _title(ax, isolabel, isoinv, errorratio):
+    """Common title: which four isotopes were used in the inversion."""
+    invisostring = (
+        isolabel[isoinv[0]]
+        + ", "
+        + isolabel[isoinv[1]]
+        + ", "
+        + isolabel[isoinv[2]]
+        + ", "
+        + isolabel[isoinv[3]]
+        + " inversion"
+    )
+    if errorratio is None:
+        ax.set_title(r"Error in $\alpha$ (1SD) with " + invisostring)
+    else:
+        # NB: the second argument of set_title is fontdict, so the two parts have
+        # to be concatenated into a single string
+        ax.set_title(
+            "Error in "
+            + isolabel[errorratio[0]]
+            + "/"
+            + isolabel[errorratio[1]]
+            + " (1SD) with "
+            + invisostring
+        )
+
+
+def _ylabel(ax, isolabel, errorratio):
+    if errorratio is None:
+        ax.set_ylabel(r"Error in $\alpha$ (1SD)")
+    else:
+        ax.set_ylabel(
+            "Error in "
+            + isolabel[errorratio[0]]
+            + "/"
+            + isolabel[errorratio[1]]
+            + " (1SD)"
+        )
 
 
 def errorcurve2d(
@@ -18,6 +60,7 @@ def errorcurve2d(
     ncontour=25,
     plottype="default",
     ax=None,
+    scale=1.0,
     **kwargs
 ):
     """2D contour plot of error as a function of double spike composition and double spike-sample proportions.
@@ -44,11 +87,12 @@ def errorcurve2d(
         plottype (str): by default, the error is plotted. By setting this to 'ppmperamu'
             an estimate of the ppm per amu is plotted instead.
         ax: matplotlib axes handle.
+        scale (float): numerical factor to multiply all errors by, useful for changing units.
         **kwargs: additional keyword arguments are passed to contour command.
 
     Example:
         >>> isodata_fe = IsoData('Fe')
-        >>> errorcurve2d(isodata_fe,'pure',[57, 58])
+        >>> errorcurve2d(isodata_fe, 'pure', [57, 58])
 
     See also errorestimate
     """
@@ -85,44 +129,33 @@ def errorcurve2d(
 
     prop = np.linspace(0.001, 0.999, resolution)
     spikeprop = np.linspace(0.001, 0.999, resolution)
-    iv, jv = np.meshgrid(np.arange(len(prop)), np.arange(len(spikeprop)))
 
-    def fun(i, j):
-        return errorestimate(
-            isodata,
-            prop[i],
-            spikeprop[j] * spike1 + (1 - spikeprop[j]) * spike2,
-            isoinv,
-            errorratio,
-            alpha,
-            beta,
-        )
-
-    vfun = np.vectorize(fun)
-    errvals, ppmperamuvals = vfun(iv, jv)
+    # the whole (prop, spikeprop) grid is evaluated in one vectorised call
+    # instead of resolution**2 separate python level calls
+    spikes = (
+        spikeprop[None, :, None] * spike1[None, None, :]
+        + (1 - spikeprop)[None, :, None] * spike2[None, None, :]
+    )
+    errvals, ppmperamuvals = errorestimate_many(
+        isodata,
+        prop[:, None],
+        spikes,
+        isoinv,
+        errorratio,
+        alpha,
+        beta,
+    )
 
     os = optimalspike(isodata, type_, isospike, isoinv, errorratio, alpha, beta)
 
     if plottype == "ppmperamu":
-        ax.contour(
-            prop,
-            spikeprop,
-            ppmperamuvals,
-            np.linspace(
-                os["optppmperamu"], (1 + threshold) * os["optppmperamu"], ncontour + 1
-            ),
-            **kwargs
-        )
+        base = float(os["optppmperamu"][0]) * scale
+        levels = np.linspace(base, (1 + threshold) * base, ncontour + 1)
+        ax.contour(prop, spikeprop, ppmperamuvals * scale, levels, **kwargs)
     else:
-        ax.contour(
-            prop,
-            spikeprop,
-            errvals,
-            np.linspace(
-                os["opterr"][0], (1 + threshold) * os["opterr"][0], ncontour + 1
-            ),
-            **kwargs
-        )
+        base = float(os["opterr"][0]) * scale
+        levels = np.linspace(base, (1 + threshold) * base, ncontour + 1)
+        ax.contour(prop, spikeprop, errvals * scale, levels, **kwargs)
 
     ax.set_xlim(np.array([0, 1]))
     ax.set_ylim(np.array([0, 1]))
@@ -151,23 +184,7 @@ def errorcurve2d(
             + " double spike"
         )
     isoinv = isodata.isoindex(isoinv)
-    invisostring = (
-        isolabel[isoinv[0]]
-        + ", "
-        + isolabel[isoinv[1]]
-        + ", "
-        + isolabel[isoinv[2]]
-        + ", "
-        + isolabel[isoinv[3]]
-        + " inversion"
-    )
-    if errorratio is None:
-        ax.set_title(r"Error in $\alpha$ (1SD) with " + invisostring)
-    else:
-        ax.set_title(
-            "Error in " + isolabel[errorratio[0]] + "/",
-            isolabel[errorratio[1]] + " (1SD) with " + invisostring,
-        )
+    _title(ax, isolabel, isoinv, errorratio)
 
     ax.plot(os["optprop"][0], os["optspikeprop"][0, isospike[0]], "rx")
 
@@ -234,12 +251,9 @@ def errorcurve(
     errorratio = isodata.isoindex(errorratio)
     isoinv = isodata.isoindex(isoinv)
     pvals = np.linspace(0.001, 0.999, 1000)
-    errvals = np.zeros(len(pvals))
-    ppmperamuvals = np.zeros(len(pvals))
-    for i in range(len(pvals)):
-        errvals[i], ppmperamuvals[i] = errorestimate(
-            isodata, pvals[i], spike, isoinv, errorratio, alpha, beta
-        )
+    errvals, ppmperamuvals = errorestimate_many(
+        isodata, pvals, spike, isoinv, errorratio, alpha, beta
+    )
 
     if plottype == "ppmperamu":
         plotvals = ppmperamuvals
@@ -252,16 +266,7 @@ def errorcurve(
     ax.set_ylim(np.array([0, 5 * mine]))
     ax.set_xlabel("proportion of double spike in double spike-sample mix")
     isolabel = isodata.isolabel
-    if errorratio is None:
-        ax.set_ylabel(r"Error in $\alpha$ (1SD)")
-    else:
-        ax.set_ylabel(
-            "Error in "
-            + isolabel[errorratio[0]]
-            + "/"
-            + isolabel[errorratio[1]]
-            + " (1SD)"
-        )
+    _ylabel(ax, isolabel, errorratio)
 
     ax.set_title(
         isolabel[isoinv[0]]
@@ -337,8 +342,6 @@ def errorcurve2(
     isoinv = isodata.isoindex(isoinv)
     isospike = isodata.isoindex(isospike)
     qvals = np.linspace(0.001, 0.999, 1000)
-    errvals = np.zeros(len(qvals))
-    ppmperamuvals = np.zeros(len(qvals))
 
     if type_ == "pure":
         spikevector1 = np.zeros(isodata.nisos)
@@ -349,11 +352,13 @@ def errorcurve2(
         spikevector1 = isodata.rawspike[isospike[0], :]
         spikevector2 = isodata.rawspike[isospike[1], :]
 
-    for i in range(len(qvals)):
-        spike = qvals[i] * spikevector1 + (1 - qvals[i]) * spikevector2
-        errvals[i], ppmperamuvals[i] = errorestimate(
-            isodata, prop, spike, isoinv, errorratio, alpha, beta
-        )
+    spikes = (
+        qvals[:, np.newaxis] * spikevector1[np.newaxis, :]
+        + (1 - qvals)[:, np.newaxis] * spikevector2[np.newaxis, :]
+    )
+    errvals, ppmperamuvals = errorestimate_many(
+        isodata, prop, spikes, isoinv, errorratio, alpha, beta
+    )
 
     if plottype == "ppmperamu":
         plotvals = ppmperamuvals
@@ -378,16 +383,7 @@ def errorcurve2(
     else:
         ax.set_xlabel("proportion of first rawspike in double spike")
 
-    if errorratio is None:
-        ax.set_ylabel(r"Error in $\alpha$ (1SD)")
-    else:
-        ax.set_ylabel(
-            "Error in "
-            + isolabel[errorratio[0]]
-            + "/"
-            + isolabel[errorratio[1]]
-            + " (1SD)"
-        )
+    _ylabel(ax, isolabel, errorratio)
 
     ax.set_title(
         isolabel[isoinv[0]]

@@ -1,6 +1,72 @@
- [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
+[build-system]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "doublespike"
+version = "1.1.0"
+description = "The double spike toolbox: error propagation and data reduction for the double spike technique in mass spectrometry"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "John F. Rudge", email = "jfr23@cam.ac.uk" }]
+keywords = [
+    "mass spectrometry",
+    "isotope",
+    "double spike",
+    "fractionation",
+    "geochemistry",
+    "error propagation",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    # broadcast_shapes and stacked linalg, both used by doublespike.errors
+    "numpy>=1.20",
+    "scipy>=1.6",
+    "matplotlib>=3.3",
+]
+
+[project.urls]
+Homepage = "https://johnrudge.com/doublespike"
+Repository = "https://github.com/johnrudge/pyspike"
+"Bug Tracker" = "https://github.com/johnrudge/pyspike/issues"
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+doublespike = ["data/*.csv"]
+
+[tool.pytest.ini_options]
+testpaths = ["src/test"]
+pythonpath = ["src"]
+filterwarnings = ["error::DeprecationWarning:doublespike.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["E402", "F401"]

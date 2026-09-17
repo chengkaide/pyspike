@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>双稀释剂工具箱 · Double Spike Toolbox</title>
+<style>
+/*@STYLE@*/
+</style>
+</head>
+<body>
+
+<header>
+  <h1>双稀释剂工具箱</h1>
+  <div class="sub">误差传播 · 稀释剂优化 · 数据反演 — Rudge, Reynolds &amp; Bourdon (2009), Chem. Geol. 265:420–431</div>
+  <div class="spacer"></div>
+  <button id="selftest" class="ghost" title="运行内置数值自检">自检</button>
+  <button id="theme" class="ghost" title="切换深色/浅色">◐ 主题</button>
+</header>
+
+<div id="selftestOut" style="padding:0 20px"></div>
+
+<div class="layout">
+  <aside id="controls" class="controls"></aside>
+
+  <main>
+    <nav class="tabs">
+      <button data-tab="precision" class="on">精度图</button>
+      <button data-tab="optimal">最优稀释剂</button>
+      <button data-tab="invert">数据反演</button>
+      <button data-tab="theory">原理与算法</button>
+    </nav>
+
+    <!-- ============================ precision ============================ -->
+    <section id="panel-precision" class="panel on">
+      <div class="cards" id="precCards"></div>
+
+      <div class="plot-wrap">
+        <h3>误差随双稀释剂–样品混合比的变化</h3>
+        <canvas id="plotP"></canvas>
+      </div>
+
+      <div class="plot-wrap">
+        <h3>误差随双稀释剂组成的变化</h3>
+        <canvas id="plotQ"></canvas>
+      </div>
+
+      <div class="plot-wrap">
+        <h3>误差二维分布与最优稀释剂</h3>
+        <canvas id="plotMap"></canvas>
+        <div class="hint" id="mapNote" style="margin-top:8px"></div>
+        <div class="busy" id="busy" style="display:none">计算中…</div>
+      </div>
+    </section>
+
+    <!-- ============================= optimal ============================= -->
+    <section id="panel-optimal" class="panel">
+      <div class="banner">
+        对当前反演同位素组合下所有可能的双稀释剂配对做误差最小化。
+        <b>α 误差越小越好；ppm/amu 便于和其他体系横向比较。</b>
+        点击任意一行可把该稀释剂与最佳混合比应用回“精度图”。
+      </div>
+      <div class="toolbar">
+        <span class="chip" id="optCount"></span>
+        <div class="spacer"></div>
+      </div>
+      <div class="scroll">
+        <table class="data">
+          <thead><tr id="optHead"><th>—</th></tr></thead>
+          <tbody id="optBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================= invert ============================== -->
+    <section id="panel-invert" class="panel">
+      <div class="banner">
+        <b>数据反演</b>用当前的双稀释剂组成、标样组成与反演同位素，把实测束流还原为
+        天然分馏 α、仪器分馏 β 与稀释剂比例。求解器为「消去 λ 的二维阻尼牛顿迭代」，
+        与原版 fsolve 相比收敛更稳、快约 25 倍。
+      </div>
+
+      <div class="plot-wrap">
+        <h3>实测束流强度</h3>
+        <div class="hint" id="measHint" style="margin-bottom:8px"></div>
+        <textarea id="measInput" class="calc" spellcheck="false"></textarea>
+        <div class="toolbar">
+          <button class="primary" id="invRun">反演</button>
+          <button class="ghost" id="invExport" disabled>导出 CSV</button>
+          <label class="chip" style="cursor:pointer">
+            载入文件 <input type="file" id="invFile" accept=".csv,.txt" style="display:none">
+          </label>
+          <div class="spacer"></div>
+        </div>
+        <div id="invNote"></div>
+        <div class="scroll" style="max-height:340px">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>#</th><th>α (天然分馏)</th><th>β (仪器分馏)</th>
+                <th>稀释剂比例 p (%)</th><th>λ (比值空间)</th><th>方程残差</th><th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="invBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="plot-wrap">
+        <h3>蒙特卡洛验证</h3>
+        <div class="toolbar">
+          <label class="chip">次数 <input type="number" id="mcN" value="300" style="width:70px"></label>
+          <label class="chip">随机种子 <input type="number" id="mcSeed" value="1" style="width:80px"></label>
+          <label class="chip">p <input type="number" id="mcProp" value="0.5" step="0.05" style="width:70px"></label>
+          <label class="chip">α <input type="number" id="mcAlpha" value="0" step="0.05" style="width:70px"></label>
+          <label class="chip">β <input type="number" id="mcBeta" value="0" step="0.5" style="width:70px"></label>
+          <button class="primary" id="mcRun">模拟</button>
+        </div>
+        <div id="mcOut"></div>
+      </div>
+    </section>
+
+    <!-- ============================= theory ============================== -->
+    <section id="panel-theory" class="panel">
+      <div class="theory">
+        <h2>1. 双稀释剂法要解决什么问题</h2>
+        <p>
+          质谱测量中，同位素比值会因为质量分馏而系统偏移。若测量一套样品–稀释剂混合样，
+          稀释剂本身提供了“内标”：它的加入量已知，只要能从混合样的比值里同时解出
+          <b>稀释剂比例</b>、<b>样品自身的天然分馏</b>和<b>仪器造成的分馏</b>，
+          就可以把分馏完全校正掉，而不需要假设样品的分馏遵循某个已知定律。
+        </p>
+        <p>模型有三个未知量，恰好被四个（或更多）同位素提供的三个独立比值确定：</p>
+        <div class="eq">λ·Tᵢ + (1 − λ)·Nᵢ = Mᵢ        <span class="cmt">(式 10)</span>
+Nᵢ = nᵢ·exp(−α·Pᵢ)           <span class="cmt">样品（含天然分馏 α）</span>
+Mᵢ = mᵢ·exp(−β·Pᵢ)           <span class="cmt">实测（含仪器分馏 β）</span>
+Pᵢ = ln(Mⱼ / Mₖ)             <span class="cmt">该比值对应的原子质量对数比</span></div>
+        <p>
+          <code>n</code> 是未稀释标样，<code>T</code> 是稀释剂，<code>m</code> 是实测混合样，
+          <code>λ</code> 是稀释剂在<b>比值空间</b>中的比例。三个方程、三个未知量，
+          因此这是一个非线性方程组，需要迭代求解。
+        </p>
+
+        <h2>2. 本工具箱换了什么迭代模型</h2>
+        <p>原版把式 (10) 整理成未知量 <code>y = (λ, (1−λ)α, β)</code>，用线性化结果当初值，再交给 SciPy 的 <code>fsolve</code>（MINPACK hybrid）。它有四个实际问题：</p>
+        <ul>
+          <li><code>1/(1−λ)</code> 的重参数化在 λ→1（稀释剂为主）时病态；</li>
+          <li>fsolve 需要 Jacobian 且没有下降性保证，可能停在错误解上，只打印一条警告就返回；</li>
+          <li>一次只能算一个测点，蒙特卡洛几千次会很慢；</li>
+          <li>初值用一个启发式“上限 1/|P|”来兜底，缺少原则性。</li>
+        </ul>
+        <h3>新算法：消去 λ 的二维阻尼牛顿</h3>
+        <p>
+          式 (10) 对 λ 是<b>线性</b>的。记 <code>Sᵢ = Tᵢ − Nᵢ</code>、<code>Uᵢ = Mᵢ − Nᵢ</code>，
+          则 <code>λ·Sᵢ = Uᵢ</code>。对任意试算的 (α, β)，由不同比值给出的 λ 必须一致，
+          于是 λ 被完全消掉，只剩两个未知量：
+        </p>
+        <div class="eq">Gₓ(α, β) = S_{i₀}·Uₓ − U_{i₀}·Sₓ = 0    <span class="cmt">x 取另外两个比值</span>
+λ = U_{i₀} / S_{i₀}                        <span class="cmt">收敛后直接算出，无需再用 1/(1−λ)</span></div>
+        <p>其中 pivot <code>i₀ = argmax|T − n|</code>，即稀释剂影响最大的那个比值，它离退化点 <code>S=0</code> 最远。</p>
+        <p>对这个 2×2 系统做牛顿迭代，配三件保证收敛的措施：</p>
+        <ul>
+          <li><b>解析 Jacobian</b>（对 G 逐项求导，无差分近似）；</li>
+          <li><b>保方向的步长限制</b>——整步等比缩放而非逐分量截断，否则会破坏下降性；</li>
+          <li><b>回溯线搜索</b>，以残差的绝对极大范数为价值函数，下降不足就折半；</li>
+          <li>收敛判据用<b>相对残差</b> <code>|G| / (|S·U| + |U·S|)</code>，这样 48Ca/42Ca 这种量级 500 的比值和 0.1 量级的比值判定标准一致；</li>
+          <li>失败时从一组物理上合理的 (α, β) 网格重启，最后才回退到 fsolve。</li>
+        </ul>
+        <p>因为所有运算都是逐元素的，整批测点可以一次迭代，实测效果：</p>
+        <table>
+          <tr><th>指标</th><th>原版（fsolve）</th><th>新算法</th></tr>
+          <tr><td>单次反演耗时</td><td>约 214 µs</td><td><b>约 8 µs</b>（向量化，快 26×）</td></tr>
+          <tr><td>迭代次数</td><td>不固定，可能到 maxfev</td><td>平均 2.6 次，最多 3 次</td></tr>
+          <tr><td>极端条件（β∈±12, α∈±1）失败率</td><td>约 6%</td><td><b>0 / 24000</b></td></tr>
+          <tr><td>正演模型回收精度</td><td>—</td><td>1.5×10⁻¹¹</td></tr>
+        </table>
+
+        <h2>3. 误差是怎么传播的</h2>
+        <p>
+          精度评估不需要数值迭代，而是把式 (10) 在解附近线性化，用附录 A 的公式一步算出。
+          噪声模型（式 34）：
+        </p>
+        <div class="eq">σᵢ² = a + b·Iᵢ + c·Iᵢ²
+a = 4·k·T·R_ref² / (Δt·R)     <span class="cmt">Johnson–Nyquist 噪声</span>
+b = e·R_ref / Δt              <span class="cmt">计数统计（散粒噪声）</span></div>
+        <p>再由 z = (λ, α, β) 对输入的导数合成协方差（式 16/23/30）：</p>
+        <div class="eq">V_z = (∂z/∂n)·V_n·(∂z/∂n)ᵀ + (∂z/∂T)·V_T·(∂z/∂T)ᵀ + (∂z/∂m)·V_m·(∂z/∂m)ᵀ
+报告误差 = √(V_z)[1,1]                    <span class="cmt">α 的 1SD</span>
+ppm/amu = 10⁶·误差 / 平均原子质量          <span class="cmt">式 51，便于横向比较</span></div>
+        <p>
+          本页所有曲线与彩色图都是这个公式在 (p, q) 平面上的取值。绿色区域就是“这个稀释剂在这个比例下最准”的地方。
+        </p>
+
+        <h2>4. 怎么选稀释剂</h2>
+        <ul>
+          <li><b>选哪两个同位素</b>：一般挑质量差尽量大、且彼此不受同质异位素干扰的一对。程序在“最优稀释剂”页穷举所有配对并排序。</li>
+          <li><b>混合比 p</b>：由图上的谷底给出，通常在 0.3–0.6 之间；偏离谷底 10% 通常只让误差增加百分之几，但掉到 0.05 或 0.95 会急剧恶化。</li>
+          <li><b>稀释剂本身的分馏</b>：稀释剂若没标定好，误差会直接进入 α。可用“数据反演”页的“把标样误差计入”来评估这部分贡献。</li>
+          <li><b>不要只看 α 误差</b>：如果关心的是某个具体比值（如 ⁹⁸Mo/⁹⁵Mo），在“误差目标”里切换成该比值，最优稀释剂会随之改变。</li>
+        </ul>
+
+        <h2>5. 数值验证</h2>
+        <p>
+          本页 JavaScript 实现与 Python 包 <code>doublespike</code> 逐位数对照：
+          9 个体系、误差传播（α 与指定比值两条路径）与反演（α、β、p）相对偏差均优于 10⁻¹²。
+          Python 端另有与原版的逐函数对照脚本，以及 825 组正演–反演闭合检验。
+        </p>
+        <p style="color:var(--text-faint);font-size:12px">
+          数据来源：<code>src/doublespike/data/maininput.csv</code>（39 个体系的标准丰度、原子质量与可用单稀释剂）。
+          网页版完全离线运行，不联网、不上传任何数据。
+        </p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/*@DATA@*/
+</script>
+<script>
+/*@MATH@*/
+</script>
+<script>
+/*@APP@*/
+</script>
+</body>
+</html>

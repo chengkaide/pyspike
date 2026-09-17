@@ -15,6 +15,7 @@ https://johnrudge.com/doublespike
 
 Functions:
     cocktail               - Generate double spike cocktail lists
+    dscorrection           - Solve the double spike equations for isotope ratios
     dsinversion            - Do the double spike inversion for a given set of measurements
     errorcurve             - A plot of error as a function of double spike-sample proportions for a given
                              double spike composition
@@ -25,6 +26,7 @@ Functions:
     errorcurveoptimalspike - Plot error curves for the optimal spike composition
     errorestimate          - Calculate the error in the natural fractionation factor or a chosen ratio
                              by linear error propagation
+    errorestimate_many     - Vectorised version of errorestimate (arrays of proportions / spikes)
     monterun               - Generate a fake mass spectrometer run by Monte-Carlo simulation
     optimalspike           - Find the optimal double spike composition and double spike-sample mixture
                              proportions
@@ -37,14 +39,19 @@ Classes:
     IsoData                - Object for storing data on individual isotope systems
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "John F. Rudge"
 
 from .isodata import IsoData
-from .inversion import dsinversion
+from .inversion import (
+    dscorrection,
+    dscorrection_legacy,
+    dscorrection_newton,
+    dsinversion,
+)
 from .monte import monterun
 from .cocktail import cocktail
-from .errors import errorestimate, ratiodata, sensitivity
-from .optimal import optimalspike
+from .errors import errorestimate, errorestimate_many, ratiodata, sensitivity
+from .optimal import optimalspike, singleoptimalspike
 from .plotting import errorcurve, errorcurve2, errorcurve2d, errorcurveoptimalspike
 from .calibrate import spike_calibration

@@ -1,46 +1,66 @@
 """Module which handles the data on isotope systems."""
 import csv
+import os
+from importlib import resources
+
 import numpy as np
-import pkg_resources
 
 # Fundamental constants
 elementarycharge = 1.60217646e-19  # coulombs
 k = 1.3806504e-23  # m^2 kg s^-2 K^-1, Boltzmann constant
 
 
+def _datafile():
+    """Path of the bundled isotope system data file.
+
+    ``importlib.resources`` replaces ``pkg_resources``, which was deprecated by
+    setuptools and is no longer guaranteed to be installed.
+    """
+    try:  # python >= 3.9
+        return str(resources.files(__package__).joinpath("data", "maininput.csv"))
+    except AttributeError:  # pragma: no cover - very old python
+        with resources.path(__package__, "data/maininput.csv") as p:
+            return str(p)
+
+
 def loadrawdata(filename=None):
     """Read in isotope system datafile and return a python dictionary with data."""
     if filename is None:
-        resource_package = __name__
-        resource_path = "/".join(("data", "maininput.csv"))  # Do not use os.path.join()
-        filename = pkg_resources.resource_filename(resource_package, resource_path)
+        filename = _datafile()
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"Cannot find isotope system datafile {filename!r}")
 
-    f = open(filename)
-    csvreader = csv.reader(f)
+    with open(filename, newline="") as f:
+        csvreader = csv.reader(f)
 
-    data = {}
+        data = {}
+        next(csvreader)  # ignore header row
+        els = []
+        el = None
 
-    next(csvreader)  # ignore header row
-    j = 0
-    els = []
-
-    for row in csvreader:
-        if not len(row[0]) == 0:
-            el = row[0].strip('"')
-            j = j + 1
-            els.append(el)
-            data[el] = {
-                "element": el,
-                "isonum": [],
-                "mass": [],
-                "standard": [],
-                "rawspike": [],
-            }
-        data[el]["isonum"].append(int(row[1]))
-        data[el]["mass"].append(float(row[2]))
-        data[el]["standard"].append(float(row[3]))
-        rs = [float(r) for r in row[4:] if len(r) > 0]
-        data[el]["rawspike"].append(rs)
+        for row in csvreader:
+            if len(row) < 4:
+                continue
+            if len(row[0]) > 0:
+                el = row[0].strip('"').strip()
+                els.append(el)
+                data[el] = {
+                    "element": el,
+                    "isonum": [],
+                    "mass": [],
+                    "standard": [],
+                    "rawspike": [],
+                }
+            if el is None:
+                raise ValueError(
+                    "Malformed isotope data file: the first data row is missing "
+                    "an element name."
+                )
+            data[el]["isonum"].append(int(row[1]))
+            data[el]["mass"].append(float(row[2]))
+            data[el]["standard"].append(float(row[3]))
+            rs = [float(r) for r in row[4:] if len(r) > 0]
+            data[el]["rawspike"].append(rs)
 
     # Renormalise compositions, convert to numpy format
     for el in els:
@@ -56,7 +76,6 @@ def loadrawdata(filename=None):
         if len(data[el]["rawspike"]) == 0:
             data[el]["rawspike"] = None
 
-    f.close()
     return data
 
 
@@ -97,11 +116,28 @@ class IsoData:
             self.rawspike = None
         self.spike = None
         if self.nisos == 4:
-            self.isoinv = self.isonum
+            self.isoinv = np.array(self.isonum)  # copy: isoinv and isonum must stay independent
         else:
             self.isoinv = None
         self.errormodel = {}
         self.set_errormodel()
+
+    def copy(self):
+        """Return an independent deep-enough copy of this isotope system.
+
+        Useful in exploratory work where the same element is evaluated with
+        several standard compositions, spikes or error models.
+        """
+        other = IsoData(self.element)
+        for attr in ("isonum", "mass", "standard", "spike", "isoinv", "rawspike"):
+            value = getattr(self, attr)
+            setattr(other, attr, None if value is None else np.array(value))
+        other.errormodel = {
+            k: {kk: (np.array(vv) if isinstance(vv, np.ndarray) else vv)
+                for kk, vv in v.items()}
+            for k, v in self.errormodel.items()
+        }
+        return other
 
     def __repr__(self):
         return "IsoData()"
@@ -189,22 +225,33 @@ class IsoData:
 
     def isoindex(self, ix):
         """Give the data index corresponding to a given isotope number e.g. 56->1."""
-
-        def isonum_to_idx(k):
-            quest = np.where(self.isonum == k)[0]
-            if len(quest) == 0:
-                return k
-            return quest[0]
-
         if ix is None:
             return None
-        if type(ix) == int:
-            return isonum_to_idx(ix)
-        if type(ix) == list:
-            return [isonum_to_idx(i) for i in ix]
-        # assume a numpy array
-        f = np.vectorize(isonum_to_idx)
-        return f(ix)
+        arr = np.asarray(ix)
+        lut = self._isoindex_map
+        if arr.ndim == 0:
+            k = int(arr)
+            return lut.get(k, k)
+        values = [lut.get(int(v), int(v)) for v in arr.ravel()]
+        out = np.array(values, dtype=int).reshape(arr.shape)
+        if isinstance(ix, list):
+            return out.tolist()
+        return out
+
+    @property
+    def _isoindex_map(self):
+        """Cached mapping from isotope number to data index.
+
+        The original implementation used ``np.vectorize`` here, which cost more
+        than the whole rest of the error calculation: it is called several times
+        per error estimate.  A plain dict lookup keyed on the current ``isonum``
+        array is around two orders of magnitude cheaper.
+        """
+        cached = self.__dict__.get("_isoindex_cache")
+        if cached is None or cached[0] is not self.isonum:
+            cached = (self.isonum, {int(k): i for i, k in enumerate(self.isonum)})
+            self.__dict__["_isoindex_cache"] = cached
+        return cached[1]
 
     @property
     def isoname(self):
@@ -381,11 +428,15 @@ class IsoData:
 
 
 def normalise_composition(comp):
-    """Normalise rows of an array to unit sum, i.e. rows are compositional vectors."""
-    s = comp.sum(axis=-1)
-    if type(s) is float:
-        return comp / s
-    return comp / s[..., np.newaxis]
+    """Normalise rows of an array to unit sum, i.e. rows are compositional vectors.
+
+    Works for any number of leading dimensions, including a bare 1-D array, and
+    no longer relies on ``type(...) is float`` (which silently fails for numpy
+    scalars).
+    """
+    comp = np.asarray(comp, dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return comp / comp.sum(axis=-1, keepdims=True)
 
 
 def ratioproptorealprop(lambda_, ratio_a, ratio_b):

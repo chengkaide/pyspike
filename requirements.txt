@@ -1,5 +1,13 @@
 ###### Required python packages ######
-scipy
-numpy
-matplotlib
+# Version floors are set by what the package actually uses:
+#   numpy>=1.20  numpy.broadcast_shapes
+#   numpy>=1.22  numpy.stack / take_along_axis usage as written
+#   scipy>=1.6   scipy.optimize.minimize(method="Nelder-Mead")
+#   matplotlib>=3.3  pyplot defaults used in plotting.py
+numpy>=1.20
+scipy>=1.6
+matplotlib>=3.3
 
+###### Optional ######
+# pytest>=7.0     # only needed to run the test suite with pytest;
+                  # `python src/test/run_tests.py` works without it
