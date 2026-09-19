@@ -33,6 +33,25 @@ intensities. Just open it in a browser -- no installation, no network access, no
 machine. See [webgui/README.md](webgui/README.md) for how it is built and how it is verified
 against this Python package.
 
+## Documentation
+
+[`docs/double-spike-primer.html`](docs/double-spike-primer.html) is a single file, completely
+offline introduction to the method, aimed at someone reading this code for the first time: why two
+spikes are needed at all, how an experiment is actually carried out step by step, where the three
+unknowns come from, and a ranked catalogue of the double spikes that make sense for **every one of
+the 33 isotope systems** in the data file -- both the idealised pure spikes (the theoretical limit)
+and the real Oak Ridge spikes you can buy, impurities and all.
+
+It is written by a beginner, for beginners, with AI assistance, and says so on the first screen.
+Every number in it is regenerated from this package rather than typed in by hand, and
+`tools/check_primer.py` fails if the prose ever drifts away from what the code computes:
+
+```bash
+python tools/dspike_catalog.py   # compute the catalogue (a few minutes, uses all cores)
+python tools/build_primer.py     # assemble the document
+python tools/check_primer.py     # verify prose, tables and figures against the code
+```
+
 ## What is in the box
 
 | function | purpose |
@@ -54,12 +73,14 @@ pytest                        # if pytest is installed
 python src/test/run_tests.py  # otherwise: a dependency free mini runner
 ```
 
-Beyond the unit tests there are three verification scripts, all of which can be re-run:
+Beyond the unit tests there are several verification scripts, all of which can be re-run:
 
 ```bash
-PYTHONPATH=src python tools/verify.py      # forward/inverse closure + stress + Monte Carlo
-PYTHONPATH=src python tools/benchmark.py   # timings
-node webgui/test_math.js                   # the browser code vs this package
+PYTHONPATH=src python tools/verify.py                  # forward/inverse closure + stress + Monte Carlo
+PYTHONPATH=src python tools/benchmark.py               # timings
+PYTHONPATH=src python tools/check_against_literature.py # reproduce published optimum spikes
+PYTHONPATH=src python tools/check_primer.py            # the primer vs this package
+node webgui/test_math.js                               # the browser code vs this package
 ```
 
 `tools/verify.py` checks that the forward model survives a round trip through the inversion for
@@ -67,6 +88,10 @@ every isotope system, that it still does so under extreme fractionations (where 
 solver failed on about 6% of cases), and that the linear error propagation agrees with Monte
 Carlo.  `webgui/test_math.js` compares the JavaScript port against reference values computed by
 this package: 437 comparisons, all agreeing to better than 1e-12 relative.
+`tools/check_against_literature.py` recomputes optima that papers have published to four
+significant figures; the Fe results come back digit for digit.
+`tools/check_primer.py` is the honesty check on the write-up itself: it re-derives the numbers
+quoted in `docs/double-spike-primer.html` and exits non-zero if any of them disagree.
 
 ## Changes in 1.1
 

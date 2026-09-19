@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>双稀释剂法入门 —— 兼 doublespike 工具箱代码导读</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --ink: #23201c;
+    --ink-soft: #5d574e;
+    --ink-faint: #8b8479;
+    --line: #e2ddd3;
+    --accent: #9c4221;
+    --accent-soft: #f6ece6;
+    --good: #1f6f4a;
+    --warn: #8a6d1f;
+    --code-bg: #f4f1ea;
+    --shadow: 0 1px 2px rgba(35, 32, 28, .06), 0 6px 20px rgba(35, 32, 28, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --panel: #1f2124;
+      --ink: #e8e5df;
+      --ink-soft: #b3aea4;
+      --ink-faint: #8a857c;
+      --line: #33363a;
+      --accent: #e8a27f;
+      --accent-soft: #2c2320;
+      --good: #7bc39b;
+      --warn: #d9b965;
+      --code-bg: #23262a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.75 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+          "PingFang SC", "Hiragino Sans GB", sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 96px; }
+  .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 0; } nav.toc { display: none; } }
+
+  header.top {
+    padding: 56px 0 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 36px;
+  }
+  header.top .kicker {
+    font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 12px;
+  }
+  header.top h1 { font-size: 34px; line-height: 1.3; margin: 0 0 14px; font-weight: 650; }
+  header.top p.lead { font-size: 17px; color: var(--ink-soft); margin: 0; max-width: 62ch; }
+  header.top .meta { margin-top: 22px; font-size: 13px; color: var(--ink-faint); }
+  header.top .meta code { background: var(--code-bg); }
+
+  nav.toc { position: sticky; top: 28px; align-self: start; font-size: 13.5px; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: t; }
+  nav.toc li { counter-increment: t; margin-bottom: 7px; }
+  nav.toc a { color: var(--ink-soft); text-decoration: none; display: block; padding: 2px 0 2px 8px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+  nav.toc a::before { content: counter(t) ". "; color: var(--ink-faint); }
+  nav.toc .sub { font-size: 12.5px; padding-left: 18px; }
+  nav.toc .sub a::before { content: ""; }
+
+  h2 { font-size: 25px; margin: 56px 0 16px; font-weight: 640; scroll-margin-top: 20px; }
+  h2 .num { color: var(--accent); margin-right: 10px; font-variant-numeric: tabular-nums; }
+  h3 { font-size: 18.5px; margin: 34px 0 10px; font-weight: 620; scroll-margin-top: 20px; }
+  h4 { font-size: 16px; margin: 24px 0 8px; font-weight: 620; color: var(--ink-soft); }
+  p { margin: 0 0 14px; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 14px; padding-left: 24px; }
+  li { margin-bottom: 6px; }
+  code {
+    font-family: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+    font-size: 13.5px; background: var(--code-bg); padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; margin: 0 0 16px;
+  }
+  pre code { background: none; padding: 0; font-size: 13px; line-height: 1.65; }
+  .eq {
+    background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 12px 16px; margin: 0 0 16px;
+    font-family: "Cambria Math", Cambria, Georgia, serif; font-size: 16.5px;
+    overflow-x: auto;
+  }
+  .eq .lbl { float: right; color: var(--ink-faint); font-size: 13px; font-family: inherit; }
+  var { font-style: italic; font-family: Cambria, Georgia, serif; }
+  .callout {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 18px; margin: 18px 0; box-shadow: var(--shadow); font-size: 15px;
+  }
+  .callout .h { font-weight: 640; margin-bottom: 6px; }
+  .callout.warn { border-left: 4px solid var(--warn); }
+  .callout.good { border-left: 4px solid var(--good); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 0 0 18px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { font-weight: 620; color: var(--ink-soft); border-bottom-width: 2px; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.mono td { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12.5px; }
+  .tblwrap { overflow-x: auto; }
+  tr.best td { background: var(--accent-soft); }
+  .dim { color: var(--ink-faint); }
+
+  .fig { margin: 22px 0; }
+  .fig svg { max-width: 100%; height: auto; display: block; }
+  .fig figcaption { font-size: 13px; color: var(--ink-faint); margin-top: 8px; }
+  figure { margin: 0; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; margin: 20px 0; }
+  details.card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+    padding: 0 15px; box-shadow: var(--shadow);
+  }
+  details.card > summary {
+    cursor: pointer; padding: 12px 0; font-weight: 620; font-size: 15.5px;
+    display: flex; align-items: baseline; gap: 10px; list-style: none;
+  }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::before { content: "▸"; color: var(--accent); font-size: 12px; }
+  details.card[open] > summary::before { content: "▾"; }
+  details.card > summary .tag {
+    margin-left: auto; font-size: 11.5px; color: var(--ink-faint);
+    font-weight: 400; font-variant-numeric: tabular-nums;
+  }
+  details.card .body { padding-bottom: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  details.card .body table { margin-bottom: 10px; }
+  details.card .body table:last-child { margin-bottom: 0; }
+  details.card .cap { font-size: 12px; color: var(--ink-faint); margin: 10px 0 4px; font-weight: 600; }
+
+  .pill { display: inline-block; font-size: 11.5px; padding: 1px 7px; border-radius: 10px;
+          background: var(--accent-soft); color: var(--accent); margin-right: 4px; }
+  .legend { font-size: 12.5px; color: var(--ink-faint); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  footer { margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line);
+           font-size: 13px; color: var(--ink-faint); }
+  .anchor { color: var(--ink-faint); text-decoration: none; opacity: 0; margin-left: 8px; font-size: .7em; }
+  h2:hover .anchor, h3:hover .anchor { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="kicker">doublespike toolbox · 入门读物</div>
+  <h1>双稀释剂法入门</h1>
+  <p class="lead">
+    双稀释剂（double spike）是质谱同位素分析里少数几个能把"仪器分馏"和"天然分馏"同时解出来的办法。
+    这份文档从"为什么需要它"讲到"每个元素的常见稀释剂组合长什么样"，并且把每一步都对应到
+    本仓库 <code>src/doublespike/</code> 里的具体函数。目标是：一个没接触过双稀释剂的人，
+    读完能自己看懂这份代码在算什么。
+  </p>
+  <div class="meta" id="meta"></div>
+
+  <div class="callout warn" style="margin:24px 0 0">
+    <div class="h">先把话说在前面：作者是初学者，本文有 AI 参与</div>
+    <p>
+      写这份文档的人<strong>自己就是刚开始学双稀释剂的人</strong>，不是这个方向的专家。
+      文档的写法是"边学边记"：先把 <code>src/doublespike/</code> 的代码和 Rudge et al. (2009) 原文读懂，
+      再把读懂的东西讲一遍。所以请把它当作<strong>入门路标，而不是权威参考</strong>——
+      凡是与论文原文或本仓库代码不一致的地方，以那两者为准，本文一定服从它们。
+    </p>
+    <p>
+      <strong>AI 参与情况</strong>：本文的文字整理、示例数字的计算与核对、全部插图与表格，
+      都是在 AI 助手（WorkBuddy）协助下完成的。其中"实测"的精度数字由 AI 运行本仓库代码算出，
+      文献对照由 AI 检索并逐条核对，插图由 AI 生成。
+      <strong>AI 会出错</strong>，所以每个数字都附了可复现的命令与脚本路径（见文末）；
+      要引用本文的数字，请自己跑一遍再引用。
+    </p>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <ol>
+    <li><a href="#why">为什么需要双稀释剂</a></li>
+    <li><a href="#lab">实验是怎么做的</a></li>
+    <li><a href="#math">方程、三个未知量与术语</a></li>
+    <li><a href="#how">怎么判断一个稀释剂好不好</a></li>
+    <li><a href="#catalog">各元素常见双稀释剂一览</a></li>
+    <li><a href="#tradeoff">理论最优 ≠ 实际常用</a></li>
+    <li><a href="#code">代码导读</a></li>
+    <li><a href="#limits">假设、局限与诚实声明</a></li>
+    <li><a href="#refs">参考</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ============================================================ -->
+<h2 id="why"><span class="num">1</span>为什么需要双稀释剂<a class="anchor" href="#why">#</a></h2>
+
+<p>
+质谱仪报出来的同位素比值不是"真值"。离子在源里、在传输路径上、在检测器上都会发生与质量相关的
+分馏，测到的比值 <var>R</var><sub>meas</sub> 和真实比值 <var>R</var><sub>true</sub> 之间通常满足指数律：
+</p>
+<div class="eq">
+  <var>R</var><sub>meas</sub> = <var>R</var><sub>true</sub> · (<var>m</var><sub>重</sub> / <var>m</var><sub>轻</sub>)<sup><var>β</var></sup>
+  <span class="lbl">指数分馏律</span>
+</div>
+<p>
+其中的 <var>β</var> 是<strong>仪器分馏因子</strong>（instrumental mass bias），每次开机、每换一个
+样品基体都会变，而且可以大到百分之几——比你想测的天然变化大一到两个数量级。
+更麻烦的是，样品在化学分离过程中也会发生天然分馏（<var>α</var>），而且它正是你想测的东西。
+</p>
+
+<p>常见的几条出路，各有各的边界：</p>
+<ul>
+  <li><strong>标样交叉（SSB）</strong>：样品前后测标样，把分馏插值掉。要求样品和标样在等离子体里行为一致，
+      且分馏在两三个分析之间足够稳定。</li>
+  <li><strong>内标（元素掺杂）</strong>：掺一个行为相近的元素（测 Fe 掺 Cu，测 Sr 掺 Zr……）。
+      依赖"两个元素的分馏严格同步"这个假设，而且要把测量质量范围拉宽到内标的质量数上。</li>
+  <li><strong>单稀释剂 / 同位素稀释</strong>：掺一个富集同位素，可以准确定出浓度。但只有一个已知量，
+      没法同时定出分馏因子。</li>
+  <li><strong>双稀释剂</strong>：掺一个由<em>两个</em>富集同位素配成的稀释剂。多出来的约束正好用来
+      解分馏因子，而且它是在<strong>样品内部</strong>做的校正——化学分离过程中丢掉的、分馏掉的那部分，
+      也一并被校正了。</li>
+</ul>
+
+<h3>为什么是"两个"，而不是一个或三个</h3>
+
+<p>
+关键是<strong>数未知量</strong>。假设测一个 <var>n</var> 个同位素的体系，取 4 个同位素进反演，
+得到 3 个独立的比值。要解的东西有三样：
+</p>
+<ol>
+  <li><var>λ</var> —— 混合样里稀释剂占的比例（决定稀释剂的贡献有多大）；</li>
+  <li><var>α</var> —— 样品相对标准的<strong>天然分馏</strong>（要报的结果）；</li>
+  <li><var>β</var> —— 测量过程中的<strong>仪器分馏</strong>（要消掉的干扰）。</li>
+</ol>
+<p>
+3 个未知量，需要 3 个独立方程，也就需要 4 个同位素（4 个同位素给出 3 个独立比值）。
+<ul>
+  <li>只掺<strong>一个</strong>富集同位素：等价于多加了一个已知的混合比例关系，但未知量仍是 3 个，
+      方程不够，只能靠"假定分馏律"或者"假定某个比值是常数"硬凑——这正是常规内标归一化的软肋。</li>
+  <li>掺<strong>两个</strong>富集同位素：稀释剂本身带一个<em>非天然</em>的同位素图案，
+      这个图案在混合以后仍然能被识别出来，从而把 <var>λ</var>、<var>α</var>、<var>β</var> 一起解出来。</li>
+  <li>掺<strong>三个</strong>（三稀释剂 triple spike）：方程多了一个，可以额外加一项其他分馏项
+      （例如核体积效应、非质量分馏），代价是要三种富集同位素。</li>
+</ul>
+
+<figure class="fig">
+<svg viewBox="0 0 680 250" role="img" aria-label="双稀释剂流程示意">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="var(--ink-faint)"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif" font-size="12.5">
+    <rect x="14" y="60" width="104" height="62" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+    <text x="66" y="84" text-anchor="middle" fill="var(--ink)" font-weight="600">样品</text>
+    <text x="66" y="104" text-anchor="middle" fill="var(--ink-faint)" font-size="11">天然组成 n</text>
+
+    <rect x="14" y="152" width="104" height="62" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+    <text x="66" y="176" text-anchor="middle" fill="var(--ink)" font-weight="600">双稀释剂</text>
+    <text x="66" y="196" text-anchor="middle" fill="var(--ink-faint)" font-size="11">组成 T（已知）</text>
+
+    <rect x="196" y="106" width="112" height="62" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <text x="252" y="130" text-anchor="middle" fill="var(--ink)" font-weight="600">混合</text>
+    <text x="252" y="150" text-anchor="middle" fill="var(--ink-faint)" font-size="11">比例 λ（未知）</text>
+
+    <rect x="386" y="106" width="120" height="62" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+    <text x="446" y="130" text-anchor="middle" fill="var(--ink)" font-weight="600">质谱测量</text>
+    <text x="446" y="150" text-anchor="middle" fill="var(--ink-faint)" font-size="11">再叠加 β（未知）</text>
+
+    <rect x="566" y="86" width="100" height="102" rx="8" fill="var(--panel)" stroke="var(--good)"/>
+    <text x="616" y="112" text-anchor="middle" fill="var(--good)" font-weight="600">反演</text>
+    <text x="616" y="133" text-anchor="middle" fill="var(--ink-soft)" font-size="11">λ, α, β</text>
+    <text x="616" y="152" text-anchor="middle" fill="var(--ink-soft)" font-size="11">三个未知量</text>
+    <text x="616" y="171" text-anchor="middle" fill="var(--ink-soft)" font-size="11">一次解出</text>
+
+    <line x1="118" y1="91" x2="192" y2="122" stroke="var(--ink-faint)" marker-end="url(#ar)"/>
+    <line x1="118" y1="183" x2="192" y2="152" stroke="var(--ink-faint)" marker-end="url(#ar)"/>
+    <line x1="308" y1="137" x2="382" y2="137" stroke="var(--ink-faint)" marker-end="url(#ar)"/>
+    <line x1="506" y1="137" x2="562" y2="137" stroke="var(--ink-faint)" marker-end="url(#ar)"/>
+
+    <text x="66" y="42" text-anchor="middle" fill="var(--ink-faint)" font-size="11">天然分馏 α</text>
+    <text x="252" y="228" text-anchor="middle" fill="var(--ink-faint)" font-size="11.5">
+      稀释剂在这里"锁"住一个非天然图案，使 λ 可解
+    </text>
+    <text x="446" y="228" text-anchor="middle" fill="var(--ink-faint)" font-size="11.5">
+      4 个同位素 → 3 个独立比值 → 3 个方程
+    </text>
+  </g>
+</svg>
+<figcaption>
+图 1 · 双稀释剂法的流程。样品和稀释剂在<strong>化学分离之前</strong>混合，所以之后所有的分馏
+（柱化学 + 仪器）都作用在同一个混合体上，可以被一次性反演掉。
+</figcaption>
+</figure>
+
+<div class="callout">
+  <div class="h">为什么两个稀释剂同位素通常要"隔开"</div>
+  <p>
+    稀释剂的图案必须和天然图案<strong>明显不同</strong>，否则"稀释剂贡献了多少"这件事无法从数据里
+    分辨出来。所以两个富集同位素一般选质量差较大的两个（Fe 的 56–58、Ca 的 43–48、
+    Cr 的 50–54、Mo 的 97–100），而且尽量选天然丰度低的，这样富集的稀释剂才有"非天然感"。
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="lab"><span class="num">2</span>实验是怎么做的<a class="anchor" href="#lab">#</a></h2>
+
+<p>
+上一节讲的是"为什么"。这一节讲"怎么做"——因为双稀释剂法里最容易出错的往往不是数学，
+而是<strong>操作顺序</strong>和<strong>平衡</strong>。先看完整流程（图 2），再逐步说每一步为什么不能省。
+</p>
+
+<h3>2.1 全流程：六步</h3>
+
+<figure class="fig">
+<svg viewBox="0 0 680 320" role="img" aria-label="一次双稀释剂分析的完整实验流程">
+  <defs>
+    <marker id="lab-ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="var(--ink-faint)"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+    <line x1="58" y1="84" x2="618" y2="84" stroke="var(--line)" stroke-width="2"/>
+
+    <circle cx="58" cy="84" r="15" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <circle cx="170" cy="84" r="15" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <circle cx="282" cy="84" r="15" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <circle cx="394" cy="84" r="15" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <circle cx="506" cy="84" r="15" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <circle cx="618" cy="84" r="15" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <g fill="var(--accent)" font-size="12" font-weight="600" text-anchor="middle">
+      <text x="58" y="89">1</text><text x="170" y="89">2</text><text x="282" y="89">3</text>
+      <text x="394" y="89">4</text><text x="506" y="89">5</text><text x="618" y="89">6</text>
+    </g>
+
+    <g fill="var(--ink)" font-size="11.5" font-weight="600" text-anchor="middle">
+      <text x="58" y="52">取样称重</text>
+      <text x="170" y="52">加稀释剂</text>
+      <text x="282" y="52">消解·平衡</text>
+      <text x="394" y="52">化学分离</text>
+      <text x="506" y="52">质谱测量</text>
+      <text x="618" y="52">反演</text>
+    </g>
+
+    <g fill="var(--ink-faint)" font-size="10" text-anchor="middle">
+      <text x="58" y="126">0.01–1 g</text>
+      <text x="58" y="140">岩石·矿物·水样</text>
+      <text x="170" y="126">称溶液质量</text>
+      <text x="170" y="140">λ 不必很准</text>
+      <text x="282" y="126">完全同位素交换</text>
+      <text x="282" y="140">唯一不能省的一步</text>
+      <text x="394" y="126">离子交换柱</text>
+      <text x="394" y="140">回收率无需 100%</text>
+      <text x="506" y="126">TIMS / MC-ICP-MS</text>
+      <text x="506" y="140">测 4 个质量数</text>
+      <text x="618" y="126">解出 λ, α, β</text>
+      <text x="618" y="140">α 就是结果</text>
+    </g>
+
+    <path d="M170,182 L170,192 L618,192 L618,182" fill="none" stroke="var(--ink-faint)"/>
+    <g fill="var(--ink-soft)" font-size="11" text-anchor="middle">
+      <text x="394" y="212">从第 2 步起，样品和稀释剂已经不可分离：后面所有的化学损失、柱分馏、仪器分馏</text>
+      <text x="394" y="228">都作用在同一个混合体上，所以可以被一次性反演掉。</text>
+    </g>
+
+    <rect x="20" y="246" width="640" height="58" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+    <g font-size="10">
+      <text x="36" y="266" fill="var(--ink)" font-weight="600" font-size="10.5">① 顺序不能颠倒</text>
+      <text x="36" y="282" fill="var(--ink-faint)">先加稀释剂，再做分离；</text>
+      <text x="36" y="296" fill="var(--ink-faint)">反过来柱上的分馏就没人管了。</text>
+      <text x="250" y="266" fill="var(--ink)" font-weight="600" font-size="10.5">② 平衡是前提</text>
+      <text x="250" y="282" fill="var(--ink-faint)">稀释剂必须与样品完全同位</text>
+      <text x="250" y="296" fill="var(--ink-faint)">素交换，否则结果系统性偏移。</text>
+      <text x="466" y="266" fill="var(--ink)" font-weight="600" font-size="10.5">③ 干扰它不管</text>
+      <text x="466" y="282" fill="var(--ink-faint)">同质异位素、多原子离子、空</text>
+      <text x="466" y="296" fill="var(--ink-faint)">白，都得在化学和测量里解决。</text>
+    </g>
+  </g>
+</svg>
+<figcaption>
+图 2 · 一次双稀释剂分析的完整流程。全流程的关键只有一句：<strong>稀释剂在化学分离之前加入</strong>，
+此后样品与稀释剂同患难，所有分馏都可以在反演里一起解掉。
+</figcaption>
+</figure>
+
+<p>逐步说明每一步在干什么、以及哪一步能出错：</p>
+<ol>
+  <li><strong>取样称重</strong>：几十毫克到一克的样品，岩石粉末、矿物、水样蒸干残渣都可以。这一步不敏感——
+      原因见 2.2。</li>
+  <li><strong>加稀释剂并称重</strong>：称的是<em>稀释剂溶液</em>的质量，用微量天平。这是全流程里唯一
+      由人决定的定量操作，但它决定的是<strong>精度</strong>而不是<strong>正确性</strong>（见 2.2）。</li>
+  <li><strong>消解与平衡</strong>：让稀释剂里的富集同位素和样品里的天然同位素在同一溶液里完全交换。
+      这是整条流程里<strong>唯一不能打折扣</strong>的一步，也是新手最常翻车的地方（见 2.3）。</li>
+  <li><strong>化学分离</strong>：离子交换柱把目标元素从基体里提出来。柱子本身会造成百分之几的同位素分馏，
+      但因为它发生在混合之后，反演能把它一起解掉；<strong>回收率不需要 100%</strong>——
+      这是双稀释剂相对常规方法的一大优势（见 2.4）。</li>
+  <li><strong>质谱测量</strong>：TIMS 或 MC-ICP-MS，测 4 个或更多同位素的束流强度，仪器分馏 <var>β</var> 叠加上来（见 2.5）。</li>
+  <li><strong>反演</strong>：解出 <var>λ</var>、<var>α</var>、<var>β</var>。<var>α</var> 就是你要报的结果，
+      这一步对应代码里的 <code>dsinversion()</code>（见 2.6）。</li>
+</ol>
+
+<div class="callout good">
+  <div class="h">一句话记住双稀释剂的能力边界</div>
+  <p>
+    它校正的是<strong>分馏</strong>，不校正<strong>干扰</strong>。同质异位素、多原子离子、试剂空白带来的偏差，
+    它一概不管——那些必须在化学和测量阶段解决。所以"用了双稀释剂就不用管化学"是错的。
+  </p>
+</div>
+
+<h3>2.2 第一步：称样、加稀释剂</h3>
+
+<p>
+理想情况是样品和稀释剂里的<strong>目标元素摩尔数大致相当</strong>。加少了，稀释剂锁不住图案，
+分馏校正不灵敏；加多了，样品信号被稀释，计数变差。两端都不好，中间有一段平坦的可用区（图 3 右）。
+</p>
+
+<figure class="fig">
+<svg viewBox="0 0 680 272" role="img" aria-label="称量与最优混合比">
+  <defs>
+    <marker id="mix-ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="var(--ink-faint)"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+    <rect x="24" y="56" width="100" height="84" rx="6" fill="var(--panel)" stroke="var(--line)"/>
+    <g text-anchor="middle">
+      <text x="74" y="80" fill="var(--ink)" font-size="12.5" font-weight="600">样品</text>
+      <text x="74" y="100" fill="var(--ink-soft)" font-size="10.5">50.0 mg</text>
+      <text x="74" y="118" fill="var(--ink-soft)" font-size="10.5">含 Fe 6.0%</text>
+    </g>
+
+    <rect x="152" y="56" width="112" height="84" rx="6" fill="var(--panel)" stroke="var(--line)"/>
+    <g text-anchor="middle">
+      <text x="208" y="80" fill="var(--ink)" font-size="12.5" font-weight="600">双稀释剂溶液</text>
+      <text x="208" y="100" fill="var(--ink-soft)" font-size="10.5">1.33 g</text>
+      <text x="208" y="118" fill="var(--ink-soft)" font-size="10.5">c = 2.8 mg Fe/g</text>
+    </g>
+
+    <line x1="74" y1="142" x2="128" y2="163" stroke="var(--ink-faint)" marker-end="url(#mix-ar)"/>
+    <line x1="208" y1="142" x2="176" y2="163" stroke="var(--ink-faint)" marker-end="url(#mix-ar)"/>
+
+    <rect x="104" y="166" width="120" height="52" rx="6" fill="var(--accent-soft)" stroke="var(--accent)"/>
+    <g text-anchor="middle">
+      <text x="164" y="188" fill="var(--ink)" font-size="12" font-weight="600">混合液</text>
+      <text x="164" y="206" fill="var(--ink-soft)" font-size="10.5">n<tspan dy="3" font-size="8">spk</tspan><tspan dy="-3"> : n</tspan><tspan dy="3" font-size="8">s</tspan><tspan dy="-3"> = 1.24 : 1</tspan></text>
+    </g>
+
+    <g text-anchor="middle" fill="var(--ink-faint)" font-size="10.5">
+      <text x="164" y="240">稀释剂溶液比岩石稀得多，</text>
+      <text x="164" y="256">所以加进去的质量反而比样品大。</text>
+    </g>
+
+    <line x1="370" y1="40" x2="370" y2="200" stroke="var(--line)"/>
+    <line x1="370" y1="200" x2="664" y2="200" stroke="var(--line)"/>
+    <rect x="458" y="40" width="104" height="160" fill="var(--accent-soft)"/>
+    <path d="M372,68 C430,94 472,178 508,182 C544,178 586,94 652,68" fill="none"
+          stroke="var(--accent)" stroke-width="2"/>
+    <circle cx="508" cy="182" r="4" fill="var(--accent)"/>
+    <text x="508" y="197" text-anchor="middle" fill="var(--accent)" font-size="10" font-weight="600">最优</text>
+    <text x="510" y="214" text-anchor="middle" fill="var(--good)" font-size="9.5">可用区（很平）</text>
+    <text x="374" y="56" fill="var(--ink-faint)" font-size="10">太少：校正不灵敏</text>
+    <text x="664" y="56" text-anchor="end" fill="var(--ink-faint)" font-size="10">太多：样品被稀释</text>
+    <text x="374" y="32" fill="var(--ink-soft)" font-size="10.5">α 的误差</text>
+    <text x="517" y="240" text-anchor="middle" fill="var(--ink-soft)" font-size="10.5">双稀释剂在混合样中的摩尔比例</text>
+  </g>
+</svg>
+<figcaption>
+图 3 · 左：一次真实的称量账。右：精度随混合比的变化（示意）。
+注意最小值附近那段平坦区——<strong>掺多少并不需要很准</strong>，只要落在里面。
+</figcaption>
+</figure>
+
+<p>
+具体怎么算？以 Fe 的 <sup>56</sup>Fe–<sup>58</sup>Fe 双稀释剂为例（它的最优混合比是稀释剂占 55.4%，
+即稀释剂与样品的摩尔数之比 1.24 : 1）：
+</p>
+
+<div class="tblwrap">
+<table>
+  <thead><tr><th>算什么</th><th>公式</th><th>本例</th></tr></thead>
+  <tbody>
+    <tr><td>样品里的 Fe 摩尔数</td><td><var>n</var><sub>s</sub> = <var>m</var>·<var>w</var> / <var>M</var></td>
+        <td>50.0 mg × 6.0% ÷ 55.85 = <strong>0.0537 mmol</strong></td></tr>
+    <tr><td>需要的稀释剂 Fe 摩尔数</td><td><var>n</var><sub>spk</sub> = 1.24 <var>n</var><sub>s</sub></td>
+        <td>0.0666 mmol = <strong>3.72 mg Fe</strong></td></tr>
+    <tr><td>要称的稀释剂溶液质量</td><td><var>m</var><sub>sol</sub> = <var>n</var><sub>spk</sub>·<var>M</var> / <var>c</var></td>
+        <td>3.72 ÷ 2.8 = <strong>1.33 g</strong></td></tr>
+  </tbody>
+</table>
+</div>
+<p class="legend">
+这里把稀释剂和样品的 Fe 摩尔质量都按 55.85 算是刻意的偷懒：真实稀释剂的摩尔质量略重（约 56.4），
+差 1% 完全无所谓——因为混合比只要落进图 3 右的平坦区就行。<code>c</code> 是稀释剂溶液里 Fe 的浓度，
+必须自己标定。
+</p>
+
+<div class="callout">
+  <div class="h">称量到底重不重要？</div>
+  <p>
+    <strong>不如你想的那么重要。</strong> <var>λ</var>（或 <var>p</var>）在反演里是<em>未知量</em>，
+    和 <var>α</var>、<var>β</var> 一起解出来，<strong>不需要事先知道</strong>。你称重的唯一作用是
+    把混合比送进平坦区。称错 10%，精度可能只差百分之几（Ni 的 <sup>61</sup>Ni–<sup>62</sup>Ni 就是这样，
+    见 §6.3）；但如果你称到曲线陡的那一段，误差会成倍上涨。
+  </p>
+  <p>
+    真正致命的系统误差在别处：<strong>稀释剂自身的组成 <var>T</var> 必须标定</strong>
+    （对应 <code>calibrate.py</code>：用"稀释剂 + 标准"的混合样测一遍，反推出 <var>T</var>）。
+    它的误差会几乎原样乘进结果——这一步做不好，后面全白做。
+  </p>
+</div>
+
+<h3>2.3 第二步：消解与平衡（最不能省的一步）</h3>
+
+<p>
+<strong>spike–sample equilibration</strong>（稀释剂—样品平衡）指的是：加入的稀释剂里的
+<sup>57</sup>Fe 和 <sup>58</sup>Fe 必须与样品里的天然 Fe 在溶液中<strong>完全同位素交换</strong>，
+变成真正意义上的一个均相溶液。只有到这一步之后，"样品"和"稀释剂"才不能分开，
+图 2 那句"同患难"才成立。
+</p>
+<p>实践上的要求：</p>
+<ul>
+  <li><strong>必须完全溶解。</strong> 难溶矿物（锆石、石榴子石、尖晶石、一些氧化物）需要 HF 加高压釜
+      或碱熔，把残渣彻底打开。如果还剩一点没溶的残渣，那部分样品的同位素组成没有参与混合——
+      结果是<strong>系统性偏移</strong>，而且看起来"很精确"，因为它不是随机的。</li>
+  <li><strong>有机样品要消解到清亮。</strong> 生物、土壤、有机质样品里的有机残留在柱上会造成
+      元素损失与干扰，也会影响平衡。</li>
+  <li><strong>平衡之后，损失真的无所谓。</strong> 这是双稀释剂最大的优点之一：
+      过柱时回收率 80% 还是 95%，结果都一样。前提是溶液是均相的——
+      <em>倒掉的部分和留下的部分同位素组成必须一致</em>。分液、离心、过滤时不要把固体带进来又丢掉。</li>
+  <li><strong>常见的翻车方式</strong>：把稀释剂加到已经"分离好"的组分上；把稀释剂加到残渣上而没有
+      重新消解；用悬浮液或未完全溶解的溶液直接上柱。</li>
+</ul>
+
+<div class="callout warn">
+  <div class="h">顺序颠倒是最典型的错误</div>
+  <p>
+    如果先做化学分离、之后再加稀释剂，那么柱上的分馏<strong>已经发生完了</strong>，
+    稀释剂对此一无所知——它只会把分馏当成天然分馏 <var>α</var> 报出去。图 4 画的就是这件事。
+  </p>
+</div>
+
+<h3>2.4 第三步：化学分离</h3>
+
+<figure class="fig">
+<svg viewBox="0 0 680 330" role="img" aria-label="两种加稀释剂顺序的对比">
+  <defs>
+    <marker id="drip-ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 z" fill="var(--ink-faint)"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+    <g fill="var(--ink)" font-size="10.5">
+      <text x="132" y="74">① 样品 + 稀释剂一起上柱</text>
+      <text x="132" y="96">② 用酸淋洗，基体先流出</text>
+      <text x="132" y="118">③ 收集目标元素</text>
+      <text x="132" y="140" fill="var(--ink-faint)">（稀释剂跟着它一起走）</text>
+      <text x="132" y="172">④ 柱上的分馏作用在混合体上</text>
+      <text x="132" y="194" fill="var(--good)">→ 反演时可以一并解掉</text>
+
+      <text x="456" y="74">① 样品单独上柱</text>
+      <text x="456" y="96">② 收集目标元素</text>
+      <text x="456" y="118">③ 才加入稀释剂</text>
+      <text x="456" y="140">④ 柱上的分馏早已发生完</text>
+      <text x="456" y="162" fill="var(--ink-faint)">稀释剂对此一无所知</text>
+      <text x="456" y="194" fill="var(--warn)">→ α 被系统性算错</text>
+    </g>
+    <text x="180" y="40" text-anchor="middle" fill="var(--good)" font-size="12" font-weight="600">
+      先把稀释剂混进去（正确）
+    </text>
+    <text x="530" y="40" text-anchor="middle" fill="var(--warn)" font-size="12" font-weight="600">
+      先分离、后加稀释剂（错误）
+    </text>
+
+    <g fill="var(--panel)" stroke="var(--line)">
+      <path d="M70,60 L122,60 L114,78 L78,78 Z"/>
+      <rect x="78" y="78" width="36" height="150" rx="4"/>
+      <path d="M394,60 L446,60 L438,78 L402,78 Z"/>
+      <rect x="402" y="78" width="36" height="150" rx="4"/>
+    </g>
+    <g fill="var(--accent-soft)">
+      <rect x="80" y="80" width="32" height="36"/>
+      <rect x="404" y="80" width="32" height="36"/>
+    </g>
+    <g fill="var(--code-bg)" stroke="var(--line)" stroke-dasharray="3 3">
+      <rect x="80" y="130" width="32" height="96"/>
+      <rect x="404" y="130" width="32" height="96"/>
+    </g>
+    <g stroke="var(--ink-faint)" stroke-dasharray="4 3" marker-end="url(#drip-ar)">
+      <line x1="96" y1="228" x2="96" y2="248"/>
+      <line x1="420" y1="228" x2="420" y2="248"/>
+    </g>
+    <g fill="var(--panel)" stroke="var(--line)">
+      <rect x="70" y="250" width="52" height="48" rx="6"/>
+      <rect x="394" y="250" width="52" height="48" rx="6"/>
+    </g>
+    <g fill="var(--accent-soft)">
+      <rect x="72" y="272" width="48" height="24"/>
+      <rect x="396" y="272" width="48" height="24"/>
+    </g>
+    <g fill="var(--ink-faint)" font-size="10" text-anchor="middle">
+      <text x="96" y="314">收集液</text>
+      <text x="420" y="314">收集液</text>
+    </g>
+  </g>
+</svg>
+<figcaption>
+图 4 · 加稀释剂的次序决定成败。左边柱子在加稀释剂之后工作，它的分馏可以被反演解掉；
+右边柱子的分馏发生在加稀释剂之前，谁也救不回来。
+</figcaption>
+</figure>
+
+<p>
+几点实践上的补充：
+</p>
+<ul>
+  <li><strong>回收率不必定量。</strong> 双稀释剂是"比例"方法，不是"浓度"方法——丢掉一部分样品
+      不影响同位素组成（前提仍是溶液均相，见 2.3）。这和常规的同位素稀释法完全不同。</li>
+  <li><strong>但干扰元素必须分干净。</strong> 回收率低到 50% 也还能用，可如果基体元素漏下来
+      造成同质异位素干扰（例如测 Fe 时残留的 Ni、Cr，或者 Ar 基的多原子离子），
+      双稀释剂完全无能为力。</li>
+  <li><strong>回收率太低会放大空白的影响。</strong> 柱上损失 90% 时，与样品一起流进来的空白
+      在同一天平上占的权重就大了。</li>
+</ul>
+
+<h3>2.5 第四步：上机测量</h3>
+
+<figure class="fig">
+<svg viewBox="0 0 680 272" role="img" aria-label="混合样的同位素图案与分馏漂移">
+  <g font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+    <g stroke="var(--line)" stroke-dasharray="2 3">
+      <line x1="44" y1="210" x2="336" y2="210"/>
+      <line x1="44" y1="166.7" x2="336" y2="166.7"/>
+      <line x1="44" y1="123.3" x2="336" y2="123.3"/>
+      <line x1="44" y1="80" x2="336" y2="80"/>
+    </g>
+    <line x1="44" y1="76" x2="44" y2="210" stroke="var(--ink-faint)"/>
+    <g fill="var(--ink-faint)" font-size="9.5" text-anchor="end">
+      <text x="38" y="213">0.1</text>
+      <text x="38" y="170">1</text>
+      <text x="38" y="126">10</text>
+      <text x="38" y="83">100</text>
+    </g>
+
+    <rect x="44" y="44" width="12" height="10" fill="var(--ink-faint)"/>
+    <text x="62" y="53" fill="var(--ink-soft)" font-size="10">天然样品（标准）</text>
+    <rect x="196" y="44" width="12" height="10" fill="var(--accent)"/>
+    <text x="214" y="53" fill="var(--ink-soft)" font-size="10">混合样（加稀释剂）</text>
+
+    <g fill="var(--ink-faint)">
+      <rect x="81" y="131.8" width="24" height="78.2"/>
+      <rect x="181" y="150.9" width="24" height="59.1"/>
+      <rect x="261" y="188.9" width="24" height="21.1"/>
+    </g>
+    <g fill="var(--accent)">
+      <rect x="115" y="145.3" width="24" height="64.7"/>
+      <rect x="215" y="164.4" width="24" height="45.6"/>
+      <rect x="295" y="115.5" width="24" height="94.5"/>
+    </g>
+
+    <g fill="var(--ink-soft)" font-size="8.5" text-anchor="middle">
+      <text x="93" y="127.8">6.4</text>
+      <text x="193" y="146.9">2.3</text>
+      <text x="273" y="184.9">0.31</text>
+      <text x="127" y="141.3">3.1</text>
+      <text x="227" y="160.4">1.1</text>
+      <text x="307" y="111.5">15.2</text>
+    </g>
+    <text x="307" y="88" fill="var(--accent)" font-size="9.5" text-anchor="middle">抬高 49 倍</text>
+
+    <g fill="var(--ink-soft)" font-size="10" text-anchor="middle">
+      <text x="110" y="226">54/56</text>
+      <text x="210" y="226">57/56</text>
+      <text x="290" y="226">58/56</text>
+    </g>
+    <text x="190" y="246" fill="var(--ink-faint)" font-size="10.5" text-anchor="middle">
+      以 56Fe 为分母的比值（×100，纵轴取对数）
+    </text>
+
+    <line x1="380" y1="70" x2="380" y2="210" stroke="var(--ink-faint)"/>
+    <line x1="380" y1="210" x2="660" y2="210" stroke="var(--ink-faint)"/>
+    <path d="M388,100 L412,104 L436,107 L460,112 L484,110 L508,117 L532,120 L556,124 L580,129 L604,131 L628,137 L652,140"
+          fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+    <g fill="var(--accent)">
+      <circle cx="388" cy="100" r="2.6"/><circle cx="508" cy="117" r="2.6"/><circle cx="652" cy="140" r="2.6"/>
+    </g>
+    <text x="520" y="30" text-anchor="middle" fill="var(--ink)" font-size="11" font-weight="600">同一个标样，连续测 12 次</text>
+    <text x="520" y="48" text-anchor="middle" fill="var(--ink-faint)" font-size="10">比值在缓慢漂移 —— 这就是 β</text>
+    <text x="384" y="222" fill="var(--ink-faint)" font-size="10">比值</text>
+    <text x="656" y="222" text-anchor="end" fill="var(--ink-faint)" font-size="10">时间</text>
+    <text x="520" y="180" text-anchor="middle" fill="var(--ink-faint)" font-size="9.5">（示意图，纵轴不代表具体数值）</text>
+  </g>
+</svg>
+<figcaption>
+图 5 · 左：加了 <sup>56</sup>Fe–<sup>58</sup>Fe 稀释剂之后，混合样的同位素图案。
+<sup>58</sup>Fe/<sup>56</sup>Fe 比天然高出 <strong>49 倍</strong>（0.31 → 15.2）——这个被"抬起来"的峰，
+就是反演能识别出 <var>λ</var> 的依据。数字由数据文件加该组合的最优稀释剂算出
+（<var>q</var>(<sup>56</sup>Fe) = 77.3%，混合比 55.4 : 44.6）。右：仪器分馏 <var>β</var> 不是常数，
+它在测量过程中缓慢漂移，双稀释剂的价值就在于<em>在每个样品内部</em>把它解出来，而不是靠前后插标准样插值。
+</figcaption>
+</figure>
+
+<p>
+同样的样品，TIMS 和 MC-ICP-MS 都能做，但各有脾气：
+</p>
+<div class="tblwrap">
+<table>
+  <thead><tr><th></th><th>TIMS（热电离）</th><th>MC-ICP-MS（多接收等离子体质谱）</th></tr></thead>
+  <tbody>
+    <tr><td>离子源</td><td>灯丝加热蒸发，样品量少（µg 级）</td><td>等离子体，进样量大、速度快</td></tr>
+    <tr><td>仪器分馏</td><td>随时间缓慢漂移，相对稳定</td><td>更大、更快，几分钟内就能变</td></tr>
+    <tr><td>与双稀释剂的关系</td><td>经典搭配，很多体系的首选</td><td>分馏大反而更需要双稀释剂</td></tr>
+    <tr><td>测什么</td><td colspan="2">都是测各同位素的<strong>束流强度</strong>（法拉第杯电压）；比值由软件从强度算出来</td></tr>
+  </tbody>
+</table>
+</div>
+<ul>
+  <li><strong>静态还是跳峰。</strong> 静态指多个法拉第杯固定在不同质量数、一次同时采集；
+      跳峰指杯组不变、靠磁场切换依次测量。静态对分馏漂移天然免疫一部分（各质量数同时测），
+      这是一条很实际的选型理由——Ca 的 <sup>42</sup>Ca–<sup>43</sup>Ca 之所以受欢迎就是因为能静态测完
+      （见 §6.2）。</li>
+  <li><strong>只要 4 个质量数就够反演。</strong> 多测一两个质量数可以用来检查一致性，
+      但反演本身只需要 4 个（3 个独立比值，3 个未知量）。</li>
+  <li><strong>束流噪声决定了精度的下限。</strong> 文档里所有 ppm/amu 数字都基于一个固定的误差模型
+      （10 V 总束流、8 s 积分、10<sup>11</sup> Ω 电阻、300 K），换一台仪器、换一套杯组，绝对值会变，
+      但稀释剂之间的<em>相对</em>排名不会变。</li>
+</ul>
+
+<h3>2.6 最后一步：反演</h3>
+<p>
+测量得到的是各同位素的<strong>束流强度</strong>（法拉第杯电压），把它们、已知的标准组成
+<var>n</var> 和标定过的稀释剂组成 <var>T</var> 一起交给 <code>dsinversion()</code>，
+它就解出 <var>λ</var>、<var>α</var>、<var>β</var>。<var>α</var> 是结果；
+<var>λ</var> 和 <var>β</var> 是顺带解出来的中间产物——实验上并没有人真去测它们。用第 2.2 节的配比跑一遍：
+</p>
+<pre><code>import numpy as np
+from doublespike import IsoData, dsinversion
+from doublespike.optimal import singleoptimalspike
+
+iso = IsoData("Fe")
+iso.set_errormodel()
+idx = lambda *m: [iso.isoindex(x) for x in m]
+
+# 第 2.2 节那个配比：56Fe-58Fe 双稀释剂，摩尔分数 55.4%
+spike, prop, *_ = singleoptimalspike(iso, "pure", idx(56, 58), idx(54, 56, 57, 58))
+print(f"{prop = :.4f}")                       # prop = 0.5540
+
+# "测到"的束流强度：无分馏的理想情况下就等于混合样的组成
+mix = (1 - prop) * np.asarray(iso.standard) + prop * spike
+
+out = dsinversion(iso, mix, spike=spike, isoinv=[54, 56, 57, 58])
+print(out["prop"], out["alpha"], out["beta"], out["lambda_ratio"])
+# 0.5540317568386911   1.2e-14   6.8e-15   0.5113357791559313
+print(out["converged"], out["residual"])
+# True   9.1e-17
+</code></pre>
+<p class="legend">
+输出里的 <code>prop</code> 精确还回了你喂进去的 0.5540，<var>α</var> 和 <var>β</var> 是机器零——
+说明反演本身是自洽的（<code>tools/verify.py</code> 把这件事做成了正反演闭环测试）。
+<strong>注意最后一个数</strong>：<code>lambda_ratio</code> = 0.5113，它就是 §3.3 说的那个"比值空间的
+<var>λ</var>"。同一个混合体，摩尔空间 0.554、比值空间 0.511，差的不是一点点——
+看代码时把这两个数混起来，会以为反演算错了。
+</p>
+
+<!-- ============================================================ -->
+<h2 id="math"><span class="num">3</span>方程、三个未知量与术语<a class="anchor" href="#math">#</a></h2>
+
+<p>
+本工具箱的全部计算，都建立在 Rudge, Reynolds &amp; Bourdon (2009, <em>Chem. Geol.</em> 265:420–431)
+的方程 (10) 上。对第 <var>i</var> 个比值：
+</p>
+<div class="eq">
+  <var>λ</var> <var>T</var><sub>i</sub> + (1 − <var>λ</var>) <var>n</var><sub>i</sub> e<sup>−<var>α</var> <var>P</var><sub>i</sub></sup>
+  = <var>m</var><sub>i</sub> e<sup>−<var>β</var> <var>P</var><sub>i</sub></sup>,
+  &nbsp;&nbsp; <var>i</var> = 1, 2, 3
+  <span class="lbl">方程 (10)</span>
+</div>
+<p>
+其中 <var>P</var><sub>i</sub> = ln(<var>M</var><sub>j</sub> / <var>M</var><sub>k</sub>)
+是定义第 <var>i</var> 个比值的两个同位素原子质量之比的对数。左边是"样品与稀释剂按 <var>λ</var>
+混合、再经历天然分馏 <var>α</var>"之后的真实组成；右边是"这个真实组成再经历仪器分馏 <var>β</var>"
+之后测到的值。三个方程、三个未知量（<var>λ</var>、<var>α</var>、<var>β</var>）。
+</p>
+
+<h3>3.1 符号表</h3>
+<div class="tblwrap">
+<table>
+  <thead><tr><th>符号</th><th>代码里的名字</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><var>n</var></td><td><code>An</code> / <code>n</code></td><td>未加稀释剂的标准（标样）的同位素比值向量，已知</td></tr>
+    <tr><td><var>T</var></td><td><code>AT</code> / <code>T</code></td><td>双稀释剂本身的比值向量，通过标定得到，视作已知</td></tr>
+    <tr><td><var>m</var></td><td><code>Am</code> / <code>m</code></td><td>实际测到的混合样比值向量</td></tr>
+    <tr><td><var>AN</var></td><td><code>AN</code></td><td>样品的"真值"比值向量 —— 反演要报出去的结果</td></tr>
+    <tr><td><var>AM</var></td><td><code>AM</code></td><td>混合样在测量分馏<em>之前</em>的真值</td></tr>
+    <tr><td><var>λ</var></td><td><code>lambda</code></td><td><strong>比值空间</strong>里稀释剂占的比例（注意不是摩尔比，见 §3.3）</td></tr>
+    <tr><td><var>α</var></td><td><code>alpha</code></td><td>样品的天然分馏因子 —— 稳定同位素研究里最终要报的量</td></tr>
+    <tr><td><var>β</var></td><td><code>beta</code></td><td>仪器的质量分馏因子 —— 要被消掉的干扰量</td></tr>
+    <tr><td><var>P</var><sub>i</sub></td><td><code>P</code></td><td>该比值的质量对数差 ln(<var>M</var><sub>j</sub>/<var>M</var><sub>k</sub>)</td></tr>
+    <tr><td><var>p</var></td><td><code>prop</code></td><td>稀释剂在混合样中的比例（<var>λ</var> 的摩尔空间版本）</td></tr>
+    <tr><td><var>q</var></td><td><code>q</code>, <code>optprop</code></td><td>两个单稀释剂配成双稀释剂时，其中一个占的比例</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="legend">
+带星号的下标（<code>Fe*</code>）在本仓库里表示"市售的、含杂质的稀释剂"，与之相对的是理想化的纯稀释剂。
+</p>
+
+<h3>3.2 1.1 版的做法：把 λ 解析消掉</h3>
+
+<p>
+方程 (10) 对 <var>λ</var> 是<strong>线性</strong>的。给定一组试探的 (<var>α</var>, <var>β</var>)，
+记 <var>N</var><sub>i</sub> = <var>n</var><sub>i</sub> e<sup>−<var>α</var><var>P</var><sub>i</sub></sup>、
+<var>M</var><sub>i</sub> = <var>m</var><sub>i</sub> e<sup>−<var>β</var><var>P</var><sub>i</sub></sup>，
+方程变成
+</p>
+<div class="eq">
+  <var>λ</var> (<var>T</var><sub>i</sub> − <var>N</var><sub>i</sub>) = <var>M</var><sub>i</sub> − <var>N</var><sub>i</sub>,
+  即 <var>λ</var> <var>S</var><sub>i</sub> = <var>U</var><sub>i</sub>,
+  &nbsp;&nbsp; <var>S</var><sub>i</sub> = <var>T</var><sub>i</sub> − <var>N</var><sub>i</sub>,
+  <var>U</var><sub>i</sub> = <var>M</var><sub>i</sub> − <var>N</var><sub>i</sub>
+  <span class="lbl">重排</span>
+</div>
+<p>
+于是每个比值都给出一个 <var>λ</var> 的候选值 <var>U</var><sub>i</sub>/<var>S</var><sub>i</sub>。
+<strong>要求不同比值给出的 <var>λ</var> 一致</strong>，就得到两个只含 (<var>α</var>, <var>β</var>)
+的方程：
+</p>
+<div class="eq">
+  <var>G</var><sub>x</sub>(<var>α</var>, <var>β</var>) = <var>S</var><sub>i₀</sub> <var>U</var><sub>x</sub> − <var>U</var><sub>i₀</sub> <var>S</var><sub>x</sub> = 0,
+  &nbsp;&nbsp; <var>x</var> = 第二个、第三个比值
+  <span class="lbl">2 × 2 系统</span>
+</div>
+<p>
+这是一个 2×2 的非线性方程组，用一个带阻尼的 Newton 迭代（解析 Jacobian + 回溯线搜索）解掉，
+然后回代得到 <var>λ</var>。这就是 <code>inversion.dscorrection_newton</code> 做的事——
+它是 1.1 版的默认解法。仓库里还保留了原来的 <code>scipy.optimize.fsolve</code> 版本
+（<code>dscorrection_legacy</code>）作为最后兜底。
+</p>
+
+<div class="callout good">
+  <div class="h">这样改写为什么重要（一个可以自己复现的对照）</div>
+  <p>
+    原版用 <code>fsolve</code> 直接解 3 个方程，参数化里带了一个 <code>1/(1-λ)</code> 的换元，
+    在 <var>λ</var> 接近 1 时病态。改成"消掉 <var>λ</var>"之后：单次反演从 214 µs 降到 11 µs；
+    在极端分馏条件下（β ∈ ±12，α ∈ ±1）原版 3432 次里有 207 次失败（6.0%），
+    新版 24000 次里 0 次失败。这些数字可以由 <code>tools/verify.py</code> 重新跑出来。
+  </p>
+</div>
+
+<h3>3.3 一个容易踩的坑：比值空间的 λ 和摩尔空间的 p</h3>
+<p>
+代码里同时存在两个"稀释剂比例"。反演方程 (10) 里的 <var>λ</var> 是<strong>比值空间</strong>的，
+而实验上你称重、配液时用的是<strong>摩尔比例</strong> <var>p</var>。二者的换算不平凡，
+因为比值向量没有归一化。仓库里由 <code>ratioproptorealprop</code> / <code>realproptoratioprop</code>
+两个函数负责（论文方程 9）：
+</p>
+<div class="eq">
+  <var>p</var> = <var>λ</var>(1+Σ<var>a</var>) / [ <var>λ</var>(1+Σ<var>a</var>) + (1−<var>λ</var>)(1+Σ<var>b</var>) ]
+  <span class="lbl">方程 (9)</span>
+</div>
+<p>
+<code>errorestimate</code> 和 <code>optimalspike</code> 对外收发的 <code>prop</code>
+都是摩尔空间的 <var>p</var>，内部换算。看代码时如果发现"这个 λ 怎么和配液表对不上"，
+多半就是这一层换算。
+</p>
+
+<!-- ============================================================ -->
+<h2 id="how"><span class="num">4</span>怎么判断一个稀释剂好不好<a class="anchor" href="#how">#</a></h2>
+
+<p>
+反演能解出 <var>α</var>，不等于解出来的 <var>α</var> 足够准。精度取决于：稀释剂的两个同位素选的是哪两个、
+稀释剂怎么配（<var>q</var>）、掺多少（<var>p</var>），以及束流的噪声有多大。
+<code>errors.errorestimate</code> 用论文附录 A 的线性误差传播把这条链路算出来：
+</p>
+<ol>
+  <li>由误差模型给出每个同位素束流的方差（下面详述）；</li>
+  <li>把束流协方差转换成比值协方差（<code>covbeamtoratio</code>）；</li>
+  <li>沿反演公式线性化传播到 <var>α</var>（<code>_fcerrorpropagation_many</code>），得到 <var>V</var><sub>z</sub>；</li>
+  <li>返回 √<var>V</var><sub>z,αα</sub>，并换算成 ppm/amu 方便跨元素比较。</li>
+</ol>
+
+<h3>4.1 默认误差模型</h3>
+<p>
+<code>IsoData.set_errormodel()</code> 的默认值是论文的默认值，也是本项目所有"实测"数字用的设置：
+</p>
+<div class="tblwrap">
+<table>
+  <thead><tr><th>参数</th><th>默认值</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>intensity</code></td><td>10 V</td><td>束流总强度（对应 10<sup>11</sup> Ω 电阻下约 100 pA）</td></tr>
+    <tr><td><code>deltat</code></td><td>8 s</td><td>积分时间</td></tr>
+    <tr><td><code>R</code></td><td>10<sup>11</sup> Ω</td><td>法拉第杯电阻（可给数组，不同杯用不同电阻）</td></tr>
+    <tr><td><code>T</code></td><td>300 K</td><td>电阻温度，用于 Johnson 噪声</td></tr>
+    <tr><td><code>measured_type</code></td><td><code>fixed-total</code></td><td>固定混合样总束流（而不是固定样品束流）</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+束流方差 <var>a</var> + <var>b</var>·<var>I</var>（方程 34）由两项构成：与信号无关的热噪声
+（Johnson–Nyquist，∝ 4<var>kT</var><var>R</var>）和与信号成正比的计数统计（∝ 电子电荷）。
+对放射性成因体系（<code>Pb</code>、<code>Sr</code>、<code>Hf</code>、<code>Os</code>、<code>Nd</code>，
+可用 <code>radiogenic=</code> 手动指定），还会给<strong>未掺稀释剂的标准</strong>也加上误差——
+因为这类研究要用两次测量（掺与不掺）相减，标准的误差会传进来。
+</p>
+
+<h3>4.2 ppm/amu：跨元素可比的精度单位</h3>
+<p>
+<var>α</var> 的绝对误差不好横向比较，因为它依赖质量差。代码同时给出 <code>ppmperamu</code>：
+把误差换算成"每个原子质量单位上的相对偏差的百万分率"。
+</p>
+<div class="eq">
+  ppm/amu = 10<sup>6</sup> · <var>σ</var><sub>α</sub> / mean(<var>M</var>)
+  &nbsp;&nbsp;(未指定 errorratio 时，方程 51)
+  <span class="lbl">方程 51</span>
+</div>
+<p>
+如果指定了 <code>errorratio=[58,56]</code> 这样的具体比值，返回的就换成了该比值的误差，
+换算用方程 (46)。<strong>本文档所有精度数字都用 ppm/amu</strong>，这样 Fe、Ca、Mo 之间可以直接比。
+</p>
+
+<h3>4.3 误差曲线与二维误差图</h3>
+<p>
+固定稀释剂组成，把 <var>p</var> 从 0 扫到 1，就得到误差曲线；把 <var>p</var> 和 <var>q</var>
+都扫一遍，就得到二维误差图。图 6 用 Fe 做例子——它是全文档最值得盯的一张图，
+因为"最优稀释剂"这件事的全部取舍都在里面。
+</p>
+
+<!--FIG_FE_CURVES-->
+
+<p>
+几个读图要点：
+</p>
+<ul>
+  <li><strong>每条曲线都有自己的最低点</strong>，最低点位置不一定都在 <var>p</var> ≈ 0.5。
+      Fe 的 56–58 最优在稀释剂占 55%，54–58 却在 21%——只看"掺一半"是错的。</li>
+  <li><strong>曲线越平，实验越好做。</strong> 实际配液时样品浓度往往估不准，<var>p</var> 会偏。
+      如果偏离最低点一点误差就暴涨，那么这个稀释剂在纸面上再好也不实用。</li>
+  <li><strong>真实稀释剂（虚线）比纯稀释剂（实线）差</strong>，但差多少要看杂质。
+      Fe 的 ORNL 57Fe*–58Fe* 含约 10.8% 的 54Fe/56Fe 杂质，误差只比纯的差 4%。</li>
+</ul>
+
+<figure class="fig">
+  <!--FIG_FE_SURFACE-->
+  <figcaption>
+    图 7 · <code>errorcurve2d</code> 的输出：ORNL 的 <sup>57</sup>Fe*–<sup>58</sup>Fe* 双稀释剂，
+    误差随 (<var>p</var>, <var>q</var>) 的变化。黑色方块是 <code>optimalspike</code> 找到的最优解。
+    等值线很"宽"——意味着在最优值附近随便配一点，结果都还不错，这正是实用上想要的稳健性。
+  </figcaption>
+</figure>
+
+<h3>4.4 最优稀释剂怎么找出来</h3>
+<p>
+<code>optimalspike</code> 对每一对候选稀释剂同位素，在 (<var>p</var>, <var>q</var>) 平面上搜误差的最小值：
+先 7×7 粗网格选盆地，再用自适应的逐轴模式搜索，最后做二次曲面拟合插值到机器精度。
+返回的结果按误差升序排列，第 0 行就是最优的那个。
+</p>
+<div class="callout warn">
+  <div class="h">必须知道：这是一个局部搜索</div>
+  <p>
+    误差曲面是一条又窄又弯的山谷，任何局部搜索都可能在平坦区域落到不同的谷底。
+    对<strong>排名靠前</strong>的稀释剂，1.1 版与原版结果一致到机器精度；
+    对<strong>排名靠后</strong>的组合（精度本来就差几十倍），两者最多可以差约 1%。
+    本文档表格里列的都是排名前几位的组合，这一点不影响结论。
+  </p>
+</div>
+
+<h3>4.5 这套实现可信吗：拿文献里已经发表过的数字验证</h3>
+
+<p>
+上面的推导看起来自洽，但自洽不等于正确。既然双稀释剂领域有大量论文把最优稀释剂组成报到了
+四位有效数字，那就应该能把它们的数字<strong>原样算回来</strong>。下面这些结果全部由
+<code>tools/check_against_literature.py</code> 复现，每一项都用了论文当时的参数配置
+（<em>特别是相同的四个反演同位素</em>——这点不统一的话比较毫无意义，见 §6.2）。
+</p>
+
+<div class="tblwrap">
+<table>
+  <thead><tr><th>锚点</th><th>文献报道</th><th>本实现算出</th><th>结论</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Fe <sup>56</sup>Fe–<sup>58</sup>Fe（纯）<br><span class="dim">Rudge et al. 2009 表 1</span></td>
+      <td class="num">77.28 : 22.72<br>混合 55.40 : 44.60<br>57 ppm/amu</td>
+      <td class="num">77.28 : 22.72<br>混合 55.40 : 44.60<br>57.1 ppm/amu</td>
+      <td><strong>逐位吻合</strong></td>
+    </tr>
+    <tr>
+      <td>Fe <sup>54</sup>Fe–<sup>58</sup>Fe（纯）<br><span class="dim">同上</span></td>
+      <td class="num">79.96 : 20.04<br>混合 21.48 : 78.52<br>166 ppm/amu</td>
+      <td class="num">79.96 : 20.04<br>混合 21.48 : 78.52<br>165.6 ppm/amu</td>
+      <td><strong>逐位吻合</strong></td>
+    </tr>
+    <tr>
+      <td>ORNL <sup>57</sup>Fe*–<sup>58</sup>Fe* 的杂质与代价<br><span class="dim">同上，正文</span></td>
+      <td class="num">杂质 10.84%<br>比纯稀释剂差“约 4%”</td>
+      <td class="num">杂质 10.85%<br>差 3.8%</td>
+      <td><strong>吻合</strong></td>
+    </tr>
+    <tr>
+      <td>ORNL <sup>64</sup>Zn–<sup>67</sup>Zn 混合比<br><span class="dim">一个使用该工具箱的 Zn 方法学论文</span></td>
+      <td class="num">58.19 : 41.81</td>
+      <td class="num">58.19 : 41.81</td>
+      <td><strong>逐位吻合</strong></td>
+    </tr>
+    <tr>
+      <td>Ni <sup>61</sup>Ni–<sup>62</sup>Ni vs <sup>60</sup>Ni–<sup>62</sup>Ni<br>
+          <span class="dim">双稀释剂实践综述（用本工具箱算的）</span></td>
+      <td>60-62 在最优处精度更高，<br>但对混合比敏感得多</td>
+      <td class="num">48.7 vs 33.9 ppm/amu<br>混合比偏 10 个百分点：<br>+3% vs <strong>+64%</strong></td>
+      <td><strong>定量复现</strong></td>
+    </tr>
+    <tr>
+      <td>Ca：<sup>43</sup>Ca–<sup>48</sup>Ca 比 <sup>42</sup>Ca–<sup>43</sup>Ca 好多少</td>
+      <td>“约两倍”</td>
+      <td class="num">37 vs 60 ppm/amu<br>即 1.6 倍</td>
+      <td>方向一致，倍数偏低</td>
+    </tr>
+    <tr>
+      <td>Ge <sup>70</sup>Ge–<sup>73</sup>Ge 最优组成<br><span class="dim">原文用本工具箱算的</span></td>
+      <td class="num"><sup>70</sup>Ge 占 73.18%<br>混合 52.15%</td>
+      <td class="num"><sup>70</sup>Ge 占 72.44%<br>混合 52.95%</td>
+      <td>组成差 0.7 个百分点，<br>但误差<strong>完全相同</strong>（37.61 ppm/amu）</td>
+    </tr>
+    <tr>
+      <td><sup>84</sup>Sr–<sup>87</sup>Sr 双稀释剂组成<br><span class="dim">一篇 Sr 方法学论文</span></td>
+      <td class="num">41.94 / 2.28 / 45.53 / 10.26</td>
+      <td class="num">47.92 / 2.50 / 39.00 / 10.58</td>
+      <td>组成看起来差很多，<br>误差只差 0.4%（44.89 vs 44.72）</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+后两项值得单独说明，因为它们是这份文档里最容易被误读的地方。<strong>Ge 和 Sr 的"最优稀释剂组成"
+与我们算出来的并不相同，但这不代表谁算错了</strong>：把文献的组成代回本实现的误差传播，
+Ge 得到的误差与我们最优解的误差<em>一模一样</em>，Sr 也只差 0.4%。
+也就是说最优解落在一片很平坦的谷底上，"最优组成"其实是一个<em>平台</em>而不是一个点——
+不同实现、不同的数值方法收敛到平台上的不同位置，是完全正常的。
+真正有意义的比较是<strong>误差差多少</strong>，而不是组成小数点后第二位是多少。
+（这一条也是 §6 里"曲线平不平时很重要"的另一个侧面。）
+</p>
+
+<div class="callout good">
+  <div class="h">这里没有藏东西</div>
+  <p>
+    上面表格里凡是"没对上"的地方都留在表里了：Ca 的倍数、Ge 的组成、Sr 的组成。
+    这些差异要么已经定量解释清楚（平坦谷底），要么本来就只是定性说法（"约两倍"）。
+    全部脚本在 <code>tools/check_against_literature.py</code>，可以自己重跑并逐行核对。
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="catalog"><span class="num">5</span>各元素常见双稀释剂一览<a class="anchor" href="#catalog">#</a></h2>
+
+<p>
+下面的内容由 <code>tools/dspike_catalog.py</code> 直接算出来（结果存在
+<code>docs/dspike_catalog.json</code>），本页表格读的就是那份数据——所以文档和代码不可能对不上。
+每个元素给出两组结果：
+</p>
+<ul>
+  <li><span class="pill">纯稀释剂</span> 假设两个单稀释剂是同位素纯的。这是<strong>该元素理论上限</strong>，
+      用来回答"这个体系到底能做到多准"。</li>
+  <li><span class="pill">市售稀释剂</span> 只用数据文件中列出的、真实可买的稀释剂（含杂质）。
+      这是<strong>你现在就买得到的方案</strong>。这里<em>不</em>固定反演同位素：对每一对稀释剂，
+      都在所有"同时包含这两个稀释剂主导同位素"的 4 个反演同位素组合里取最优。
+      这一点很关键——反演组合换一下精度可以差 4 倍（见 §6.2 的反例），
+      而如果只固定用某一种反演组合，像 <sup>70</sup>Ge–<sup>73</sup>Ge 这种
+      "主导同位素不在该组合里"的稀释剂会被误判成废解（§6.4 讲了这个坑）。</li>
+</ul>
+
+<h3>5.1 总览</h3>
+<p>
+数据文件里共 39 个元素，其中 33 个的天然同位素数 ≥ 4，也就是原则上可以用双稀释剂
+（33 个里有 31 个在数据文件中带真实的可用单稀释剂；<strong>Kr 和 Xe 没有列单稀释剂</strong>，
+所以只能看理论上的纯稀释剂）。下表给出每个体系的候选组合数与最优可达精度，按精度排序。
+</p>
+
+<!--TBL_OVERVIEW-->
+
+<p class="legend">
+"候选组合数"= 反演用的 4 个同位素的选法 × 稀释剂对的选法，即
+C(n,4) × C(4,2)（纯稀释剂情形）。它是 <code>optimalspike</code> 实际跑过的搜索次数，
+也是"这个体系有多少种可能"的直观量度。
+</p>
+
+<h3>5.2 逐元素细表</h3>
+<p>
+点开任意一个元素可以看到：标准组成、数据文件里可用的单稀释剂及其纯度、
+以及排名前几位的纯稀释剂 / 市售稀释剂方案（含最优稀释剂组成、最优混合比、精度）。
+"文献常用"一列是人工核对的、在文献里确实被广泛使用的组合，用于和计算值对照：
+<strong>两者不一致是常态，见 §6</strong>。
+</p>
+
+<div class="cards" id="cards"></div>
+
+<p class="legend">
+表中 <code>混合比</code> 写作"稀释剂% : 样品%"，都是摩尔比例 <var>p</var>；
+<code>稀释剂组成</code> 给出各同位素在双稀释剂中的占比（只列前两位，其余是杂质）。
+"文献常用"一列只覆盖本轮核对过的体系，写 <span class="dim">—</span> 表示<strong>未核对</strong>，
+不代表文献里没有。
+</p>
+
+<!-- ============================================================ -->
+<h2 id="tradeoff"><span class="num">6</span>理论最优 ≠ 实际常用<a class="anchor" href="#tradeoff">#</a></h2>
+
+<p>
+如果只看本工具箱算出来的排名，很容易得出"某某实验室选错了稀释剂"的结论。
+但真实世界里选哪对稀释剂，还要同时考虑下面这些约束——它们都不在误差模型里：
+</p>
+<ul>
+  <li><strong>同质异位素干扰</strong>：<sup>70</sup>Zn 上压着 <sup>54</sup>Fe<sup>16</sup>O<sup>+</sup>、
+      <sup>56</sup>Fe<sup>14</sup>N<sup>+</sup> 和 Ge；<sup>40</sup>Ca 上有 <sup>40</sup>Ar；
+      <sup>46</sup>Ti 上有多原子干扰。干扰严重的质量数不能进反演。</li>
+  <li><strong>能不能静态同时测</strong>：TIMS 的杯组是固定的。
+      Ca 的 40-42-43-44 可以一次静态测完，掺 48Ca 就得换杯、分两次测，效率完全不同。</li>
+  <li><strong>稀释剂的富集度与价格</strong>：<sup>46</sup>Ca、<sup>48</sup>Ca 这类富集起来又贵又难，
+      所以市售稀释剂往往杂质可观（本文档"市售稀释剂"表里的纯度列就是这件事的量化）。</li>
+  <li><strong>最优区间的宽度</strong>：见下面 Ni 的例子，这一条经常比绝对精度更重要。</li>
+  <li><strong>能否同时定多个比值</strong>：掺 43-48 可以同时报 δ<sup>44/40</sup>Ca 和 δ<sup>44/42</sup>Ca，
+      掺 42-43 就不行。</li>
+</ul>
+
+<h3>6.1 Fe：最优的、次优的、和大家在用的</h3>
+<p>
+Rudge et al. (2009) 表 1 给出的纯稀释剂排名是：<sup>56</sup>Fe–<sup>58</sup>Fe 最优，
+<sup>57</sup>Fe–<sup>58</sup>Fe 紧随其后，<sup>54</sup>Fe–<sup>58</sup>Fe 排第四
+（精度差约 3 倍）。但早期文献（Johnson &amp; Beard 1999 及其后续）大量使用
+<sup>54</sup>Fe–<sup>58</sup>Fe。论文自己给出的解释是：
+</p>
+<ul>
+  <li>改用 56–58 或 57–58 理论上能换来约 3 倍的精度提升；</li>
+  <li>但 <sup>57</sup>Fe*–<sup>58</sup>Fe* 的误差曲线<strong>比 <sup>56</sup>Fe*–<sup>58</sup>Fe* 更平</strong>，
+      在混合比不理想时更稳——这本身就是选 57–58 而不是 56–58 的理由。</li>
+</ul>
+<p>这正是图 6 里可以直接看出来的东西，也是本文档反复强调"别只看最低点"的原因。</p>
+
+<h3>6.2 Ca：精度差一倍，但主流用的是"差"的那个</h3>
+<p>
+Rudge et al. 的理论结果是：<sup>43</sup>Ca–<sup>48</sup>Ca 的误差传播大约只有
+<sup>42</sup>Ca–<sup>43</sup>Ca 的<strong>一半</strong>。我们用本实现复算（每对都配它自己最合适的
+反演同位素组合）得到的是：
+</p>
+<div class="tblwrap">
+<table>
+  <thead><tr><th>双稀释剂</th><th>反演同位素</th><th class="num">最优精度</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td><sup>42</sup>Ca–<sup>43</sup>Ca</td><td>40, 42, 43, 44</td><td class="num">60.0 ppm/amu</td>
+        <td>只需测 40–44 四个质量数，可静态测完</td></tr>
+    <tr><td><sup>43</sup>Ca–<sup>48</sup>Ca</td><td>40, 43, 44, 48</td><td class="num">36.7 ppm/amu</td>
+        <td>精度更好，但要测到 48</td></tr>
+    <tr><td><sup>42</sup>Ca–<sup>48</sup>Ca</td><td>40, 42, 44, 48</td><td class="num"><b>34.9 ppm/amu</b></td>
+        <td>本代码算出来的 Ca 最优解</td></tr>
+    <tr><td><sup>43</sup>Ca–<sup>48</sup>Ca</td><td>40, 42, 43, 48</td><td class="num">143.3 ppm/amu</td>
+        <td class="dim">反例：同样的稀释剂，只是反演组合换了一下，精度差 4 倍</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+所以我们的结论是：43-48 比 42-43 好约 <strong>1.6 倍</strong>（不是文献里说的 2 倍），
+而最好的其实是 42-48。<em>但即便差 1.6 倍</em>，很多实验室仍然选择 42-43，理由有两条：
+</p>
+<ul>
+  <li><strong>平均质量接近</strong>：42-43 的平均质量 42.5，与要报的 44/40（平均 42）几乎一样，
+      于是归一化比值和被校正比值"同步分馏"，对分馏律偏离指数律的敏感度小得多；</li>
+  <li><strong>可以静态测量</strong>：只需测 <sup>40,42,43,44</sup>Ca 四个质量数，
+      一次静态采集完成，避免了两批测量之间的分馏漂移。</li>
+</ul>
+<p>
+<sup>42</sup>Ca–<sup>48</sup>Ca 是最早的经典方案（Russell et al. 1978），
+<sup>43</sup>Ca–<sup>46</sup>Ca 也有实验室在用。换句话说：
+<strong>误差传播算出来的"最优"只是判据之一</strong>，而且经常不是决定性的那一个。
+顺带一提，第二行和第四行的对比说明另一件事：<em>反演用哪四个同位素，和选哪对稀释剂一样重要</em>——
+同样的 43-48 稀释剂，反演组合从 (40,43,44,48) 换成 (40,42,43,48) 就会差 4 倍。
+</p>
+
+<h3>6.3 Zn 和 Ni：最优区间太窄，就只能退而求其次</h3>
+<p>
+<strong>Zn</strong>：本实现算出来，Zn 的纯稀释剂最优组合是 <sup>66</sup>Zn–<sup>70</sup>Zn
+（约 17 ppm/amu），其次是 <sup>67</sup>Zn–<sup>70</sup>Zn——也就是说越重的组合理论上越好。
+但 <sup>70</sup>Zn 上压着 <sup>54</sup>Fe<sup>16</sup>O<sup>+</sup>、
+<sup>56</sup>Fe<sup>14</sup>N<sup>+</sup> 和 Ge 的干扰，基本不能用。
+退到可用范围内，市售稀释剂里最好的是 <sup>64</sup>Zn–<sup>67</sup>Zn（约 54 ppm/amu），
+这也是绝大多数实验室的选择（<sup>64</sup>Zn 的市售纯度也最高）。
+我们用数据文件里的 ORNL 稀释剂算出的最优配比是 <sup>64</sup>Zn/<sup>67</sup>Zn = 5.14、
+混合比 58.19 : 41.81；文献里报的对应值是 4.88——差 5%，但文献同时说
+不同实验室报出的最优比值本来就在 4.5–6.0 之间，而最终精度基本相同，因为这个极小值很平。
+</p>
+<p>
+<strong>Ni</strong>：这是"最优区间宽度"最干净的教材，而且我们的数字能定量复现文献的说法。
+用数据文件里的 ORNL 稀释剂、反演同位素 58,60,61,62：
+</p>
+<div class="tblwrap">
+<table>
+  <thead><tr><th>双稀释剂</th><th class="num">最优混合比<br>(稀释剂:样品)</th>
+    <th class="num">最优处精度</th><th class="num">混合比偏低 10 个百分点</th><th class="num">偏高 10 个百分点</th></tr></thead>
+  <tbody>
+    <tr><td><sup>60</sup>Ni–<sup>62</sup>Ni</td><td class="num">43.7 : 56.3</td>
+        <td class="num">33.9 ppm/amu</td>
+        <td class="num">+64%</td><td class="num">+50%</td></tr>
+    <tr class="best"><td><sup>61</sup>Ni–<sup>62</sup>Ni</td><td class="num">64.1 : 35.9</td>
+        <td class="num">48.7 ppm/amu</td>
+        <td class="num">+2%</td><td class="num">+3%</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+<sup>60</sup>Ni–<sup>62</sup>Ni 在最优处的精度确实更好（33.9 对 48.7），但混合比只要偏 10 个百分点，
+误差就涨一半到六成；<sup>61</sup>Ni–<sup>62</sup>Ni 虽然"最优"差一些，却几乎不受混合比影响。
+现实中样品浓度往往估不准，所以主流实验室选的是后者——并且明确以"对混合比不敏感"作为理由。
+<em>这正是本工具箱最有用的地方：它不只告诉你最优在哪，还让你看见最优附近有多平。</em>
+</p>
+
+<h3>6.4 还有一件事：市售稀释剂并不"纯"</h3>
+<p>
+数据文件里 31 个元素共列了 185 个可用单稀释剂，其中<strong>有 9 个并不是以它名字里的那个同位素为主</strong>。
+最极端的是 Ca 的 <sup>46</sup>Ca 稀释剂：它其实是 60.8% 的 <sup>40</sup>Ca 加 30.9% 的 <sup>46</sup>Ca。
+</p>
+<div class="tblwrap">
+<table>
+  <thead><tr><th>稀释剂（名义）</th><th class="num">名义同位素占比</th>
+    <th class="num">相对标准的富集倍数</th><th class="num">丰度最大的同位素</th></tr></thead>
+  <tbody>
+    <tr><td>S 的 <sup>36</sup>S</td><td class="num">3.5%</td><td class="num">176×</td><td class="num"><sup>32</sup>S 90.1%</td></tr>
+    <tr><td>Ca 的 <sup>46</sup>Ca</td><td class="num">30.9%</td><td class="num">7729×</td><td class="num"><sup>40</sup>Ca 60.8%</td></tr>
+    <tr><td>Ba 的 <sup>130</sup>Ba</td><td class="num">37.6%</td><td class="num">355×</td><td class="num"><sup>138</sup>Ba 39.5%</td></tr>
+    <tr><td>Ba 的 <sup>132</sup>Ba</td><td class="num">28.3%</td><td class="num">280×</td><td class="num"><sup>138</sup>Ba 40.2%</td></tr>
+    <tr><td>Ce 的 <sup>138</sup>Ce</td><td class="num">26.0%</td><td class="num">104×</td><td class="num"><sup>140</sup>Ce 69.9%</td></tr>
+    <tr><td>Hf 的 <sup>174</sup>Hf</td><td class="num">19.0%</td><td class="num">119×</td><td class="num"><sup>178</sup>Hf 21.8%</td></tr>
+    <tr><td>W 的 <sup>180</sup>W</td><td class="num">11.3%</td><td class="num">95×</td><td class="num"><sup>182</sup>W 42.8%</td></tr>
+    <tr><td>Os 的 <sup>184</sup>Os</td><td class="num">5.6%</td><td class="num">282×</td><td class="num"><sup>192</sup>Os 29.4%</td></tr>
+    <tr><td>Pt 的 <sup>190</sup>Pt</td><td class="num">4.2%</td><td class="num">299×</td><td class="num"><sup>194</sup>Pt 49.9%</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+判断"这是哪个稀释剂"要看<strong>相对标准的富集倍数</strong>而不是绝对丰度：上表每一行的富集倍数
+都在 95 倍以上，而列里最大的那个同位素往往只是天然就多的那种。这个区别很重要——
+如果用丰度最大值去判断，Ca 的 <sup>46</sup>Ca 稀释剂会被当成 <sup>40</sup>Ca 稀释剂，
+于是 <sup>43</sup>Ca–<sup>46</sup>Ca 这类双稀释剂就凭空消失了。
+（本仓库的 <code>tools/dspike_catalog.py</code> 里的 <code>spike_table()</code> 就是干这件事的，
+docstring 里记录了这两套判据的取舍。数据文件本身并不标注哪一列是哪个稀释剂。）
+</p>
+<p>
+对使用者的含义很直接：<strong>稀释剂的实际纯度会显著影响可达精度</strong>，
+§5 的"市售稀释剂"表里那一列百分数就是各稀释剂名义同位素的真实占比，
+和"纯稀释剂"表的差值就是你要付的代价。如果你手上那瓶稀释剂的富集度和这里不一样
+（这批数据编于论文写作时期），按 §7.4 换成真实组成重跑。
+</p>
+
+<div class="callout">
+  <div class="h">一句话总结</div>
+  <p>
+    <code>optimalspike</code> 回答的是<strong>"在给定的误差模型下，哪种稀释剂的理论精度最好"</strong>。
+    它不知道干扰、不知道杯组、不知道你的稀释剂有多贵、也不知道你的样品浓度估得准不准。
+    把它当作<em>筛选器</em>（先砍掉明显差的组合），而不是<em>决策器</em>。
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="code"><span class="num">7</span>代码导读<a class="anchor" href="#code">#</a></h2>
+
+<h3>7.1 模块地图</h3>
+<div class="tblwrap">
+<table>
+  <thead><tr><th>文件</th><th>职责</th><th>先看哪个函数</th></tr></thead>
+  <tbody>
+    <tr><td><code>isodata.py</code></td>
+        <td>同位素体系数据与 <code>IsoData</code> 类：同位素编号、原子质量、标准组成、可用单稀释剂、误差模型</td>
+        <td><code>IsoData</code>、<code>set_errormodel</code></td></tr>
+    <tr><td><code>data/maininput.csv</code></td>
+        <td>39 个元素的数据表本身（见 §7.2 的逐列解释）</td><td>—</td></tr>
+    <tr><td><code>inversion.py</code></td>
+        <td>反演：从测到的混合样解出 (<var>λ</var>, <var>α</var>, <var>β</var>)</td>
+        <td><code>dsinversion</code> → <code>dscorrection_newton</code></td></tr>
+    <tr><td><code>errors.py</code></td>
+        <td>线性误差传播：比值的协方差、<var>α</var> 的误差、ppm/amu；还有灵敏度分析</td>
+        <td><code>errorestimate</code> / <code>errorestimate_many</code></td></tr>
+    <tr><td><code>optimal.py</code></td>
+        <td>搜索最优稀释剂组成与混合比</td><td><code>optimalspike</code></td></tr>
+    <tr><td><code>plotting.py</code></td>
+        <td>误差曲线、误差曲面、最优稀释剂的误差曲线</td>
+        <td><code>errorcurve</code>、<code>errorcurve2d</code></td></tr>
+    <tr><td><code>monte.py</code></td>
+        <td>蒙特卡洛：模拟一次质谱测量，用来验证线性误差传播</td><td><code>monterun</code></td></tr>
+    <tr><td><code>calibrate.py</code></td>
+        <td>用"稀释剂–标准"混合样的测量结果标定双稀释剂本身的组成</td>
+        <td><code>spike_calibration</code></td></tr>
+    <tr><td><code>cocktail.py</code></td>
+        <td>把所有元素的候选稀释剂批量算出来，输出 CSV 清单（论文里的 "cocktail list"）</td>
+        <td><code>cocktail</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>7.2 <code>maininput.csv</code> 怎么读</h3>
+<p>
+这是全仓库最容易看错的地方，逐列说明（表头写在第一行，但真正的列名要靠下面这些约定）：
+</p>
+<pre><code>"""Fe""",54,53.9396148,0.05845,0.9837,0.0007,0.001,0.0039,,,,,,
+     ,56,55.9349421,0.91754,0.0155,0.9998,0.0697,0.1378,,,,,,
+     ,57,56.9353987,0.02119,0.0007,0.0004,0.9288,0.0125,,,,,,
+     ,58,57.9332805,0.00282,0.00008,0.0001,0.0005,0.8458,,,,,,
+       │    │         │       └───────────────┬─────────────┘
+       │    │         │                       └ 第 5 列起：每一个"可用的单稀释剂"一列，
+       │    │         │                         列内是该稀释剂里各同位素的占比（列和 = 1）
+       │    │         └ 标准组成（天然丰度，会归一化）
+       │    └ 原子质量
+       └ 同位素质量数（同一元素只在第一行写元素符号，其余行留空）
+</code></pre>
+<p>三条必须记住的规则：</p>
+<ol>
+  <li><strong>每个元素的同位素顺序由这个文件决定</strong>，代码里所有 <code>isonum</code> / <code>mass</code>
+      / <code>standard</code> 数组都是这个顺序。<code>IsoData.isoindex(58)</code> 把质量数转成下标。</li>
+  <li><strong>稀释剂是按"列"组织的</strong>，读进来以后转成 <code>rawspike</code>，第 <var>j</var> 行是第 <var>j</var> 个稀释剂。
+      这里有两个坑：其一，稀释剂的<strong>行号不一定等于同位素的行号</strong>——Ru 有 7 个同位素但只有 6 个稀释剂
+      （没有 <sup>96</sup>Ru 稀释剂），两套下标就错开了；其二，<strong>数据文件不标注哪一列是哪个稀释剂</strong>，
+      而"取这一列里丰度最大的同位素"这个想当然的做法对 9 个稀释剂是错的（见 §6.4）。
+      正确的做法是用相对标准的富集倍数来判断。</li>
+  <li>所有组成向量都会被<strong>归一化</strong>（<code>IsoData</code> 的 setter 里做）。所以你手填的数字
+      只要相对比例对就行。</li>
+</ol>
+
+<h3>7.3 三个最小例子</h3>
+<pre><code>import numpy as np
+from doublespike import IsoData, errorestimate, optimalspike, monterun
+
+# 1) 一个 Fe 的 57Fe-58Fe 稀释剂，掺 50%，误差是多少？
+iso_fe = IsoData("Fe")
+iso_fe.set_errormodel()                       # 不调用的话，误差模型是空的
+err, ppm = errorestimate(iso_fe, 0.5, [0, 0, 0.5, 0.5])
+print(f"{err:.2e}  ({ppm:.1f} ppm/amu)")
+
+# 2) 把所有可能的 Fe 稀释剂排个序，看第一名
+opt = optimalspike(iso_fe, "pure")
+print("best pair:", opt["optisoinv"][0], "err:", opt["opterr"][0])
+print("spike composition:", opt["optspike"][0])
+
+# 3) 造一次假的测量，再反演回去，检查能不能复原
+m = monterun(iso_fe, 0.5, [0, 0, 0.5, 0.5], alpha=0.0, beta=0.0, seed=42)
+print(m.shape)                                # (n, 4) 一列一个同位素的束流
+</code></pre>
+
+<h3>7.4 加一个新元素或新稀释剂</h3>
+<ol>
+  <li>在 <code>src/doublespike/data/maininput.csv</code> 里按 §7.2 的格式加行/加列；</li>
+  <li>如果这个元素的稀释剂是"真实含杂质"的市售品，就填真实组成；
+      如果只是想试算理想情况，留空或填一个干净的 δ 列即可；</li>
+  <li>跑 <code>PYTHONPATH=src python tools/verify.py</code> 确认正反演闭环仍然成立；</li>
+  <li>如果只是想临时改标准组成或稀释剂，用 <code>iso.copy()</code> 拿一份独立副本再改，
+      不要去改 <code>default_data</code>（那是模块级共享对象）。</li>
+</ol>
+
+<h3>7.5 网页版</h3>
+<p>
+<code>webgui/doublespike-gui.html</code> 是同一个算法的单文件离线网页版：选元素、配稀释剂、
+看误差曲线和二维精度图、给所有稀释剂排名、直接反演测到的束流强度。
+里面的 JS 与 Python 做过 437 项逐位对照（<code>node webgui/test_math.js</code>），
+相对误差优于 1e-12。想先"手感"一下双稀释剂是怎么回事，从它开始比读代码快。
+</p>
+
+<!-- ============================================================ -->
+<h2 id="limits"><span class="num">8</span>假设、局限与诚实声明<a class="anchor" href="#limits">#</a></h2>
+
+<p>上面所有"实测"数字都建立在下面这些假设上。它们是<b>可讨论的选择</b>，不是自然规律：</p>
+<ol>
+  <li><strong>误差模型只含法拉第杯的两种基本噪声：热噪声与计数统计</strong>
+      （代码注释里标注为方程 (35)）。这里先把单位说清楚，因为这一段最容易卡住：
+      <strong>质谱里"束流"习惯用电压表示</strong>——离子流经过一个反馈电阻转成电压再测量，
+      所以文档说"总束流 10 V"，指的是混合样<em>所有</em>质量数的信号电压之和是 10 V。
+      配 <code>R_reference</code> = 10<sup>11</sup> Ω 换算成电流就是
+      10 V ÷ 10<sup>11</sup> Ω = <strong>100 pA</strong> 的总离子流。
+      <br>
+      每个质量数的信号 <var>I</var>，其方差按 <var>σ</var><sup>2</sup> =
+      <var>a</var> + <var>b</var>·<var>I</var> 叠加（<code>c</code> 默认为 0）：
+      <ul>
+        <li><var>a</var> = 4<var>kT</var><var>R</var><sub>ref</sub><sup>2</sup> ÷
+            (<var>Δt</var>·<var>R</var>) —— 电阻上的 Johnson–Nyquist 热噪声，
+            <em>与信号大小无关</em>，是个固定的本底；</li>
+        <li><var>b</var> = <var>e</var><var>R</var><sub>ref</sub> ÷ <var>Δt</var> ——
+            计数统计（散粒）噪声，<em>随信号线性增长</em>，信号越强它越大。</li>
+      </ul>
+      代入默认的四个参数（<var>T</var> = 300 K、<var>Δt</var> = 8 s、
+      <var>R</var> = <var>R</var><sub>ref</sub> = 10<sup>11</sup> Ω）：
+      <var>a</var> ≈ 2.1×10<sup>−10</sup> V<sup>2</sup>、<var>b</var> ≈ 2.0×10<sup>−9</sup> V，
+      在 10 V 的信号上给出 <var>σ</var> ≈ 1.4×10<sup>−4</sup> V，
+      也就是<strong>单束流约 14 ppm 的相对精度</strong>——这个数字就是后面所有 ppm/amu 的下限。
+      <br>
+      还有一处容易混：<code>R</code> 和 <code>R_reference</code> 默认都是 10<sup>11</sup> Ω，
+      但作用不同。<code>R</code> 是<em>实际参与误差计算</em>的反馈电阻（这里假设所有杯相同），
+      <code>R_reference</code> 只用来把"10 V"这句描述换算成安培（10 V 对应 100 pA 就是这么来的）。
+      顺带一个可能反直觉的结论：在这套默认参数下，
+      <strong>计数统计贡献了约 99% 的方差</strong>（热噪声只占 1%），
+      所以真正决定精度的是离子流有多强、积分了多久，而不是温度或电阻。
+      <br>
+      这个模型<em>不</em>含同质异位素干扰的残留误差、基线漂移、法拉第杯增益校准误差、
+      以及样品引入不稳定。真实实验室的实际重现性通常<strong>比这里算出来的差</strong>，
+      差距可以是 1.5–3 倍。所以表里的数字应读作"在理想仪器条件下的相对优劣"，
+      而不是"你实验室能做到的精度"。</li>
+  <li><strong>混合样的总束流固定（<code>measured_type="fixed-total"</code>），
+      这一个选择就决定了所有精度数字的量级。</strong> 它假设你把混合样调到某个总信号强度再测，
+      于是掺的稀释剂越多、来自样品的信号就越弱。另一个选项
+      <code>"fixed-sample"</code> 假设样品贡献的束流固定、掺稀释剂只会让总信号更强——
+      在同一套其他参数下，<sup>56</sup>Fe–<sup>58</sup>Fe 算出来是 <b>31.5</b> ppm/amu
+      而不是这里的 57.1，最优混合比从 55:45 变成 <b>90:10</b>；
+      Ca、Zn 更极端，最优解直接趋近于"稀释剂越多越好"（<var>p</var> → 1）。
+      <em>所以精度数字只有在说清用哪种模式之后才有意义。</em>
+      本文档全程用 <code>fixed-total</code>，因为它是
+      <code>IsoData.set_errormodel()</code> 的默认值。</li>
+  <li><strong>质量分馏严格遵循指数律。</strong> 实际分馏律会偏离，离得越远，反演残差越大。
+      这正是 §6.2 里"平均质量接近"成为一条判据的原因。</li>
+  <li><strong>标准组成、稀释剂组成视作已知且无误差</strong>（放射性成因体系除外，
+      会额外给标准加噪声）。真实工作中稀释剂组成要标定，标定误差会传进最终结果。</li>
+  <li><strong>稀释剂比例 <var>λ</var>/<var>p</var> 的先验信息</strong>：这里用混合比的最优值，
+      但现实中你通常靠质量差称量，会有自己的误差。</li>
+  <li><strong><code>optimalspike</code> 是局部搜索</strong>（见 §4.4），排名靠后的组合可能与原版差约 1%。</li>
+  <li><strong>"市售稀释剂"表只用了 <code>maininput.csv</code> 里那几列。</strong>
+      数据来自论文致谢里提到的那份 Oak Ridge 清单（Rudge et al. 2009），
+      大约二十年前编的。你现在买到的稀释剂富集度可能已经不同——
+      如果是这样，请按 §7.4 换成真实组成重跑，排名可能会变。</li>
+  <li><strong>线性误差传播的适用范围。</strong> 在本文档用到的参数范围内
+      （束流 10 V 量级、正常混合比），它与蒙特卡洛一致；
+      在极低束流或极端分馏下会偏离，此时应改用 <code>monterun</code> 做蒙特卡洛。</li>
+  <li><strong>"文献常用"一列是人工归纳，不是系统综述。</strong> 只覆盖本轮核对过的体系，
+      引用的是几篇代表性文献，不能当作完整文献综述使用。</li>
+  <li><strong>作者是初学者，本文有 AI 参与撰写。</strong> 图、表、示例数字都由 AI 协助生成与核对，
+      文字也是 AI 整理的。这意味着两件事：一是本文的<em>取舍</em>（讲什么、不讲什么）带着初学者的视角，
+      可能漏掉专家认为重要的东西；二是 AI 可能出错，且可能把"看起来合理"的东西写得像真的。
+      凡是关键结论，请回到代码和论文复核——本文的每个数字都留了可复现的入口，就是为了方便你做这件事。</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="refs"><span class="num">9</span>参考<a class="anchor" href="#refs">#</a></h2>
+<ol>
+  <li>Rudge, J.F., Reynolds, B.C., Bourdon, B. (2009) <em>The double spike toolbox.</em>
+      Chemical Geology 265, 420–431. <a href="https://doi.org/10.1016/j.chemgeo.2009.05.010">doi</a>
+      —— 本仓库实现的原始论文；方程编号、附录 A（误差传播）、附录 E（ppm/amu）都出自这里。</li>
+  <li><a href="https://johnrudge.com/doublespike">johnrudge.com/doublespike</a> —— 作者主页，含原始软件与补充材料。</li>
+  <li>Cumming, G.L. (1973) <em>Propagation of experimental errors in lead isotope ratio measurements
+      using the double spike method.</em> Chemical Geology —— 双稀释剂误差传播的早期经典。</li>
+  <li>Dodson, M.H. (1969/1970) —— 双稀释剂方程的简化，Pb 体系。</li>
+  <li>Galer, S.J.G. (1999) <em>Optimal double and triple spiking for high precision lead isotopic
+      measurement.</em> Chemical Geology —— 几何方法与三稀释剂。</li>
+  <li>Johnson, C.M., Beard, B.L. (1999) —— <sup>54</sup>Fe–<sup>58</sup>Fe 双稀释剂在 Fe 稳定同位素中的早期应用。</li>
+  <li>Gopalan, K. et al. (2006) <em>Evaluation of a <sup>42</sup>Ca–<sup>43</sup>Ca double-spike for
+      high precision Ca isotope analysis.</em> Int. J. Mass Spectrom. —— §6.2 的 42-43 vs 43-48 之争。</li>
+  <li>Russell, W.A. et al. (1978) —— Ca 双稀释剂（<sup>42</sup>Ca–<sup>48</sup>Ca）的开创工作。</li>
+  <li>Siebert, C., Nägler, T.F., Kramers, J.D. (2001) <em>Determination of molybdenum isotope
+      fractionation by double-spike MC-ICP-MS.</em> G<sup>3</sup> —— <sup>97</sup>Mo–<sup>100</sup>Mo 方案。</li>
+  <li>Krabbenhöft, A. et al. (2009); Neymark, L.A. et al. (2014) —— <sup>84</sup>Sr–<sup>87</sup>Sr 双稀释剂。</li>
+  <li>Millet, M.-A., Dauphas, N. (2014) <em>Ultra-precise titanium stable isotope measurements by
+      double-spike high resolution MC-ICP-MS.</em> J. Anal. At. Spectrom. —— <sup>47</sup>Ti–<sup>49</sup>Ti。</li>
+  <li>Wölfer, E., Burkhardt, C., Kleine, T. (2025) <em>Germanium stable isotope measurements by
+      double-spike MC-ICPMS.</em> J. Anal. At. Spectrom. —— <sup>70</sup>Ge–<sup>73</sup>Ge，
+      文中直接用本工具箱算最优组成。</li>
+  <li>Gueguen, B. et al. (2013) <em>Nickel isotope variations in terrestrial silicate rocks…</em>
+      Geostandards and Geoanalytical Research —— <sup>61</sup>Ni–<sup>62</sup>Ni（ORNL）。</li>
+  <li>双稀释剂法实践综述（<em>Obtaining accurate isotopic compositions with the double spike
+      technique: practical considerations</em>）—— §6.3 中 Ni 的两种稀释剂对比即出自该文图 7、图 4。</li>
+  <li>《同位素双稀释剂技术的数值模拟与应用》，岩石学报 —— 中文文献中关于
+      <sup>50</sup>Cr–<sup>54</sup>Cr、<sup>97</sup>Mo–<sup>100</sup>Mo、<sup>111</sup>Cd–<sup>113</sup>Cd
+      最优配比的讨论。</li>
+</ol>
+
+<footer>
+  <p>
+    本文档由 <code>tools/build_primer.py</code> 从 <code>docs/primer_template.html</code> +
+    <code>docs/dspike_catalog.json</code> 生成，图表来自 <code>tools/dspike_figures.py</code>。
+    表格里的每一个数字都可以用 <code>G:/Python39/python.exe tools/dspike_catalog.py</code> 重新算出来。
+  </p>
+  <p>
+    <strong>作者是双稀释剂法的初学者，本文在 AI 助手（WorkBuddy）协助下撰写</strong>：
+    文字整理、示例数字的计算与核对、全部插图与表格均出自 AI。
+    本文不是权威参考，请与 Rudge et al. (2009) 原文及本仓库代码相互印证后再引用。
+  </p>
+  <p>
+    doublespike 工具箱 · Rudge, Reynolds &amp; Bourdon (2009) · 本文档随仓库分发。
+  </p>
+</footer>
+
+</main>
+</div>
+</div>
+
+<script type="application/json" id="catalog-data">/*CATALOG_JSON*/</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("catalog-data").textContent);
+  var ELS = DATA.elements;
+
+  // --- hand curated literature pairs, from the sources listed in section 8.
+  //     Only systems that were actually checked are present; everything else
+  //     shows as an em dash rather than a guess.
+  var LIT = {
+    Ca: "42Ca–43Ca、43Ca–48Ca 为主流，42Ca–48Ca 是最早的经典方案；文献报道 43Ca–48Ca 的理论误差约为 42Ca–43Ca 的一半",
+    Cr: "50Cr–54Cr；配比通常取 54Cr/50Cr ≈ 1",
+    Fe: "56Fe–58Fe 理论最优、57Fe–58Fe 次优但曲线更平；54Fe–58Fe 在早期文献中广泛使用",
+    Ni: "61Ni–62Ni（ORNL，61Ni/62Ni ≈ 1）；60Ni–62Ni 精度略高但对混合比敏感",
+    Zn: "64Zn–67Zn 为主流（64Zn 市售纯度最高）；66Zn–67Zn / 66Zn–68Zn 理论更优但最优区间太窄",
+    Sr: "84Sr–87Sr；文献报道的双稀释剂组成约 41.9% 84Sr / 45.5% 87Sr",
+    Mo: "97Mo–100Mo（ORNL 富集度约 94% / 97%）",
+    Cd: "111Cd–113Cd；111/113 比值约 1.25（报 114/110Cd）到 1.50（报 116/110Cd）",
+    Ti: "47Ti–49Ti，约 50:50，混合比约 52% 样品",
+    Ge: "70Ge–73Ge；文献最优解为 70Ge 占双稀释剂 73.2%、双稀释剂占混合物 52.2%",
+    Nd: "145Nd–150Nd",
+    Pb: "Pb 是双稀释剂最早的应用体系之一（Dodson 1969；Galer 1999 讨论过最优双/三稀释剂组合）"
+  };
+
+  function fmt(x, d) {
+    if (x === null || x === undefined || !isFinite(x)) return "—";
+    if (x === 0) return "0";
+    if (Math.abs(x) < 1e-3 || Math.abs(x) >= 1e5) return x.toExponential(2);
+    return x.toFixed(d === undefined ? 1 : d);
+  }
+  function pct(x, d) { return (100 * x).toFixed(d === undefined ? 2 : d) + "%"; }
+  function pair(list) { return list.map(function (i) { return "<sup>" + i + "</sup>"; }).join("–"); }
+  function elLabel(el) { return "<b>" + el + "</b>"; }
+  // A composition vector is normalised, so a "pure" spike still carries 1e-16
+  // traces of the other isotopes.  Only show a component once it is worth a
+  // digit: 5e-4 is 0.05%, i.e. the point where the one-decimal display stops
+  // printing "0.0%".
+  var MIN_SHOW = 5e-4;
+  // the spike composition vector is indexed by position in isonum, not by mass
+  // number, so it has to be walked together with isonum
+  function spikeComp(e, r, sep) {
+    var parts = [];
+    e.isonum.forEach(function (iso, j) {
+      if (r.spike[j] > MIN_SHOW) parts.push("<sup>" + iso + "</sup>" + pct(r.spike[j], 1));
+    });
+    return parts.join(sep === undefined ? "<br>" : sep);
+  }
+
+  // ---------------- overview table ----------------
+  (function overview() {
+    var rows = Object.keys(ELS).map(function (k) {
+      var e = ELS[k];
+      var best = e.pure.length ? e.pure[0] : null;
+      var bestReal = e.real.length ? e.real[0] : null;
+      return {
+        el: k,
+        e: e,
+        n: e.isonum.length,
+        spikes: e.spikes.length,
+        combos: e.ncombinations,
+        best: best,
+        bestReal: bestReal,
+        note: e.note
+      };
+    }).filter(function (r) { return r.best; });
+    rows.sort(function (a, b) { return a.best.ppmperamu - b.best.ppmperamu; });
+
+    var h = ['<div class="tblwrap"><table><thead><tr>',
+      '<th>元素</th><th class="num">同位素</th><th class="num">候选组合</th>',
+      '<th class="num">可用单稀释剂</th>',
+      '<th>理论最优组合</th><th class="num">稀释剂组成</th><th class="num">混合比</th>',
+      '<th class="num">精度<br><span style="font-weight:400">ppm/amu</span></th>',
+      '<th>市售最优组合</th><th class="num">精度</th>',
+      '</tr></thead><tbody>'];
+    rows.forEach(function (r, i) {
+      var b = r.best;
+      h.push("<tr" + (i === 0 ? ' class="best"' : "") + ">");
+      h.push("<td>" + elLabel(r.el) + "</td>");
+      h.push('<td class="num">' + r.n + "</td>");
+      h.push('<td class="num">' + r.combos + "</td>");
+      h.push('<td class="num">' + (r.spikes || '<span class="dim">0</span>') + "</td>");
+      h.push("<td>" + pair(b.pair) + "</td>");
+      h.push('<td class="num" style="font-size:12px">' + spikeComp(r.e, b) + "</td>");
+      h.push('<td class="num">' + pct(b.prop, 0) + " : " + pct(1 - b.prop, 0) + "</td>");
+      h.push('<td class="num"><b>' + fmt(b.ppmperamu, 1) + "</b></td>");
+      if (r.bestReal) {
+        h.push("<td>" + pair(r.bestReal.pair) + "</td>");
+        h.push('<td class="num">' + fmt(r.bestReal.ppmperamu, 1) + "</td>");
+      } else {
+        h.push('<td class="dim">—</td><td class="num dim">—</td>');
+      }
+      h.push("</tr>");
+    });
+    h.push("</tbody></table></div>");
+    document.getElementById("tbl-overview").innerHTML = h.join("");
+  })();
+
+  // ---------------- per element cards ----------------
+  function spikeTable(e, rows, real) {
+    if (!rows.length) return '<p class="dim">无可用的组合。</p>';
+    var h = ['<div class="tblwrap"><table class="mono"><thead><tr>',
+      "<th>#</th><th>稀释剂对</th><th>反演同位素</th><th>稀释剂组成</th>",
+      "<th>混合比</th><th>ppm/amu</th>", real ? "<th>单一稀释剂纯度</th>" : "",
+      "</tr></thead><tbody>"];
+    rows.forEach(function (r, i) {
+      var comps = [];
+      e.isonum.forEach(function (iso, j) {
+        if (r.spike[j] > MIN_SHOW) comps.push("<sup>" + iso + "</sup>" + pct(r.spike[j], 1));
+      });
+      var purity = real && r.spikeprop
+        ? r.spikeprop.map(function (s) {
+            var name = "<sup>" + s.isotope + "</sup>" + pct(s.fraction, 1);
+            if (s.top_isotope !== s.isotope) {
+              name += '<span class="dim" title="这个稀释剂里丰度最大的其实不是它名字里的同位素">*</span>';
+            }
+            return name;
+          }).join(" · ")
+        : "";
+      h.push("<tr" + (i === 0 ? ' class="best"' : "") + ">");
+      h.push("<td>" + (i + 1) + "</td>");
+      h.push("<td>" + pair(r.pair) + "</td>");
+      h.push("<td style='font-size:11.5px'>" + r.isoinv.join(",") + "</td>");
+      h.push("<td style='font-size:11.5px'>" + comps.join(" ") + "</td>");
+      h.push("<td>" + pct(r.prop, 1) + ":" + pct(1 - r.prop, 1) + "</td>");
+      h.push("<td>" + fmt(r.ppmperamu, 1) + "</td>");
+      if (real) h.push("<td style='font-size:11.5px'>" + purity + "</td>");
+      h.push("</tr>");
+    });
+    h.push("</tbody></table></div>");
+    return h.join("");
+  }
+
+  (function cards() {
+    var keys = Object.keys(ELS);
+    var h = [];
+    keys.forEach(function (k) {
+      var e = ELS[k];
+      var best = e.pure.length ? e.pure[0] : null;
+      var tag = best ? fmt(best.ppmperamu, 1) + " ppm/amu" : (e.note || "—");
+      h.push('<details class="card"><summary>' + elLabel(k) +
+        '<span class="tag">' + tag + "</span></summary><div class='body'>");
+
+      // standard composition
+      var std = e.isonum.map(function (iso, j) {
+        return "<sup>" + iso + "</sup>" + k + " " + (100 * e.standard[j]).toFixed(2) + "%";
+      }).join(" · ");
+      h.push('<div class="cap">标准组成（归一化后）</div><div style="font-size:12.5px;color:var(--ink-soft)">' + std + "</div>");
+
+      // available single spikes
+      if (e.spikes.length) {
+        var sp = e.spikes.map(function (s) {
+          var txt = "<sup>" + s.isotope + "</sup>" + k + " " + (100 * s.fraction).toFixed(1) + "%";
+          if (s.top_isotope !== s.isotope) {
+            txt += ' <span class="dim">（丰度最大的却是 <sup>' + s.top_isotope + "</sup>" + k +
+                   " " + (100 * s.top_fraction).toFixed(1) + "%）</span>";
+          }
+          return txt;
+        });
+        h.push('<div class="cap">数据文件里可用的单稀释剂（百分数为<strong>该稀释剂名义同位素</strong>的实际占比）</div>' +
+               '<div style="font-size:12.5px;color:var(--ink-soft)">' + sp.join("<br>") + "</div>");
+      }
+
+      h.push('<div class="cap">纯稀释剂（理论上限，' + e.ncombinations + " 个候选组合的前几名）</div>");
+      h.push(spikeTable(e, e.pure, false));
+
+      if (e.real && e.real.length) {
+        h.push('<div class="cap">市售稀释剂（用数据文件里的真实单稀释剂；' +
+               '每个稀释剂对都在所有<em>同时包含这两个稀释剂同位素</em>的反演组合里取最优）</div>');
+        h.push(spikeTable(e, e.real, true));
+      } else if (e.note) {
+        h.push('<p class="dim">' + e.note + "</p>");
+      }
+
+      if (LIT[k]) {
+        h.push('<div class="cap">文献常用</div><div style="font-size:12.5px;color:var(--ink-soft)">' + LIT[k] + "</div>");
+      } else {
+        h.push('<div class="cap">文献常用</div><div class="dim" style="font-size:12.5px">— 本轮未核对（不代表文献里没有）</div>');
+      }
+      h.push("</div></details>");
+    });
+    document.getElementById("cards").innerHTML = h.join("");
+  })();
+
+  var em = DATA.errormodel;
+  document.getElementById("meta").innerHTML =
+    "数据生成于 " + DATA.generated + " · 包版本 " + DATA.package_version +
+    " · " + Object.keys(ELS).length + " 个体系<br>" +
+    "误差模型（<code>IsoData.set_errormodel()</code> 的默认值，本文档所有精度数字都基于它）：" +
+    "混合样总束流 " + em.intensity_V + " V（<em>所有</em>质量数的信号电压之和；" +
+    "经 " + em.R_reference_ohm.toExponential(0) + " Ω 参考电阻换算 = " +
+    (1e12 * em.intensity_V / em.R_reference_ohm).toFixed(0) + " pA 总离子流），" +
+    "积分 " + em.deltat_s + " s，反馈电阻 " + em.R_ohm.toExponential(0) + " Ω，温度 " + em.T_K + " K；" +
+    "混合样的总束流固定（" + em.measured_type + "），Pb/Sr/Hf/Os/Nd 按放射成因处理（额外计入标样的误差）" +
+    "<br><span class=\"dim\">为什么束流用 V 表示、V 和 pA 怎么换算、这四个参数各自起什么作用，" +
+    "见 <a href=\"#limits\">§8 第 1 条</a>。</span>";
+})();
+</script>
+</body>
+</html>
