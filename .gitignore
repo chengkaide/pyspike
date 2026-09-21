@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Local handover notes: this machine's environment quirks and how to push from
+# it.  Worth keeping on disk, not part of the published package.
+/进度与交接.md
+/PROGRESS.md
+/CONTEXT.md
