@@ -11,6 +11,31 @@ and at:
 
 https://johnrudge.com/doublespike
 
+---
+
+> ## Start here: the double spike primer
+>
+> ### [`docs/double-spike-primer.html`](docs/double-spike-primer.html)
+>
+> **New to the method, or new to this code? Read this first.** It is the complete introduction:
+> why two spikes are needed at all, how an experiment is actually carried out step by step, where
+> the three unknowns come from, and a ranked catalogue of the double spikes that make sense for
+> **every one of the 33 isotope systems** in the data file -- both the idealised pure spikes (the
+> theoretical limit) and the real Oak Ridge spikes you can buy, impurities and all.
+>
+> It is a **single file, completely offline** document with every figure inlined. To read it,
+> download it and open it in a browser -- no installation, no network access.
+> (GitHub shows it as source code rather than rendering it; use
+> [the raw file](https://raw.githubusercontent.com/chengkaide/pyspike/main/docs/double-spike-primer.html)
+> to save it, or just open your local copy in the repository.)
+>
+> It is written by a beginner, for beginners, with AI assistance, and says so on the first screen.
+> Every number in it is regenerated from this package rather than typed in by hand, and
+> [`tools/check_primer.py`](tools/check_primer.py) fails if the prose ever drifts away from what
+> the code computes.
+
+---
+
 ## Installation
 
 This is a standard python 3 package, which can be installed using pip:
@@ -33,24 +58,22 @@ intensities. Just open it in a browser -- no installation, no network access, no
 machine. See [webgui/README.md](webgui/README.md) for how it is built and how it is verified
 against this Python package.
 
-## Documentation
+## Rebuilding the primer
 
-[`docs/double-spike-primer.html`](docs/double-spike-primer.html) is a single file, completely
-offline introduction to the method, aimed at someone reading this code for the first time: why two
-spikes are needed at all, how an experiment is actually carried out step by step, where the three
-unknowns come from, and a ranked catalogue of the double spikes that make sense for **every one of
-the 33 isotope systems** in the data file -- both the idealised pure spikes (the theoretical limit)
-and the real Oak Ridge spikes you can buy, impurities and all.
-
-It is written by a beginner, for beginners, with AI assistance, and says so on the first screen.
-Every number in it is regenerated from this package rather than typed in by hand, and
-`tools/check_primer.py` fails if the prose ever drifts away from what the code computes:
+The **double spike primer** linked at the top of this file is generated, not written by hand, so it
+can be regenerated at any time:
 
 ```bash
 python tools/dspike_catalog.py   # compute the catalogue (a few minutes, uses all cores)
 python tools/build_primer.py     # assemble the document
 python tools/check_primer.py     # verify prose, tables and figures against the code
 ```
+
+`tools/dspike_catalog.py` writes [`docs/dspike_catalog.json`](docs/dspike_catalog.json), which
+`tools/build_primer.py` inlines into [`docs/primer_template.html`](docs/primer_template.html) to
+produce the final document. `tools/check_primer.py` is the gate: it re-derives every number quoted
+in the prose and every table cell from this package, and exits non-zero if any of them disagree.
+Adding a sentence or a figure therefore means updating the template and the checker together.
 
 ## What is in the box
 
