@@ -133,3 +133,10 @@ dmypy.json
 /进度与交接.md
 /PROGRESS.md
 /CONTEXT.md
+
+# Manuscript in preparation: a technical note on Sn double-spike selection, the
+# figure it uses, and the checker that verifies its numbers.  Most journals treat
+# material posted in a public repository as published, so this stays local until
+# it is submitted.  To publish it deliberately, delete the line below -- the two
+# scripts are self-contained and would also work from tools/.
+/paper/
