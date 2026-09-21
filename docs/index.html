@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>双稀释剂法入门 —— doublespike 工具箱</title>
+<meta name="description" content="双稀释剂法（double spike）的离线入门文档与浏览器计算工具，出自 doublespike Python 工具箱。">
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --ink: #23201c;
+    --ink-soft: #5d574e;
+    --ink-faint: #8b8479;
+    --line: #e2ddd3;
+    --accent: #9c4221;
+    --accent-soft: #f6ece6;
+    --code-bg: #f4f1ea;
+    --shadow: 0 1px 2px rgba(35, 32, 28, .06), 0 6px 20px rgba(35, 32, 28, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --panel: #1f2124;
+      --ink: #e8e5df;
+      --ink-soft: #b3aea4;
+      --ink-faint: #8a857c;
+      --line: #33363a;
+      --accent: #e8a27f;
+      --accent-soft: #2c2320;
+      --code-bg: #23262a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .25);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 4rem; }
+  h1 { font-size: 1.95rem; line-height: 1.25; margin: 0 0 .35rem; letter-spacing: -.01em; }
+  .sub { color: var(--ink-soft); margin: 0 0 2.2rem; }
+  .sub code { font-size: .92em; }
+
+  a.cta {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--panel); border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 1.35rem 1.5rem; box-shadow: var(--shadow);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  a.cta:hover, a.cta:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(35, 32, 28, .08), 0 12px 28px rgba(35, 32, 28, .10);
+  }
+  .cta .kicker {
+    font-size: .78rem; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: .5rem;
+  }
+  .cta .name { font-size: 1.28rem; font-weight: 650; margin-bottom: .55rem; }
+  .cta p { margin: 0; color: var(--ink-soft); font-size: .95rem; }
+
+  .grid { display: grid; gap: .9rem; margin-top: .9rem; }
+  @media (min-width: 34rem) { .grid { grid-template-columns: 1fr 1fr; } }
+  .card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 1.05rem 1.2rem;
+  }
+  .card:hover, .card:focus-visible { border-color: var(--accent); }
+  .card .name { font-weight: 600; margin-bottom: .3rem; }
+  .card p { margin: 0; color: var(--ink-soft); font-size: .875rem; line-height: 1.6; }
+
+  h2 {
+    font-size: .8rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 600;
+    margin: 2.6rem 0 .8rem; padding-bottom: .45rem;
+    border-bottom: 1px solid var(--line);
+  }
+  ul { margin: 0; padding-left: 1.15rem; color: var(--ink-soft); font-size: .93rem; }
+  li { margin: .3rem 0; }
+  footer {
+    margin-top: 3rem; padding-top: 1.1rem; border-top: 1px solid var(--line);
+    color: var(--ink-faint); font-size: .83rem; line-height: 1.75;
+  }
+  footer a { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>双稀释剂法入门</h1>
+  <p class="sub">兼 <code>doublespike</code> 工具箱代码导读 ·
+     Rudge, Reynolds &amp; Bourdon (2009, <i>Chem. Geol.</i> 265:420–431) 方法的实现</p>
+
+  <a class="cta" href="double-spike-primer.html">
+    <div class="kicker">从这里开始</div>
+    <div class="name">阅读完整入门文档 →</div>
+    <p>为什么需要两个稀释剂、实验怎么做、三个未知量从哪来、怎么判断一个稀释剂好不好，
+       以及数据文件里<b>全部 33 个同位素体系</b>的双稀释剂排名目录 —— 理想纯稀释剂与
+       实际可购买的 Oak Ridge 稀释剂（含杂质）都列了。单文件、完全离线，所有图都内嵌。</p>
+  </a>
+
+  <div class="grid">
+    <a class="card" href="https://github.com/chengkaide/pyspike/blob/main/webgui/doublespike-gui.html">
+      <div class="name">浏览器版计算工具</div>
+      <p>单文件、离线：选元素、构造双稀释剂、看误差曲线与二维精度图、给所有稀释剂排名、
+         反演实测束流。下载后在浏览器打开即可，无需安装。</p>
+    </a>
+    <a class="card" href="https://github.com/chengkaide/pyspike">
+      <div class="name">源码仓库</div>
+      <p>Python 包本体、验证脚本（与原版逐位对照）、基准测试，以及本文档的构建流程。</p>
+    </a>
+  </div>
+
+  <h2>这份文档的可信度</h2>
+  <ul>
+    <li><b>每个数字都是算出来的，不是抄的。</b> 文档里的表格与图全部由仓库内的
+        <code>tools/dspike_catalog.py</code> 重新生成。</li>
+    <li><b>有自动门禁。</b> <code>tools/check_primer.py</code> 会重新推导正文里引用的每个数字，
+        不一致就退出非零；几十页表格靠人眼复查不现实。</li>
+    <li><b>该说的局限都说了。</b> 误差只含热噪声与计数统计，真实实验室的重现性通常更差；
+        <code>optimalspike</code> 是局部搜索，排名靠后的组合可能与全局最优差约 1%。</li>
+    <li><b>作者是初学者。</b> 文档面向第一次读这份代码的人，首屏就写明这一点。</li>
+  </ul>
+
+  <footer>
+    本页与入门文档均为构建产物，不要直接手改：改动请落在
+    <code>docs/primer_template.html</code>，再依次跑
+    <code>tools/dspike_catalog.py</code> → <code>tools/build_primer.py</code> →
+    <code>tools/check_primer.py</code>。<br>
+    由 GitHub Pages 托管。
+  </footer>
+
+</div>
+</body>
+</html>

@@ -15,7 +15,7 @@ https://johnrudge.com/doublespike
 
 > ## Start here: the double spike primer
 >
-> ### [`docs/double-spike-primer.html`](docs/double-spike-primer.html)
+> ### Read it online: <https://chengkaide.github.io/pyspike/>
 >
 > **New to the method, or new to this code? Read this first.** It is the complete introduction:
 > why two spikes are needed at all, how an experiment is actually carried out step by step, where
@@ -23,11 +23,12 @@ https://johnrudge.com/doublespike
 > **every one of the 33 isotope systems** in the data file -- both the idealised pure spikes (the
 > theoretical limit) and the real Oak Ridge spikes you can buy, impurities and all.
 >
-> It is a **single file, completely offline** document with every figure inlined. To read it,
-> download it and open it in a browser -- no installation, no network access.
-> (GitHub shows it as source code rather than rendering it; use
-> [the raw file](https://raw.githubusercontent.com/chengkaide/pyspike/main/docs/double-spike-primer.html)
-> to save it, or just open your local copy in the repository.)
+> The primer is written in **Chinese**; this README and the code comments are in English.
+>
+> It is also a **single file, completely offline** document with every figure inlined:
+> [`docs/double-spike-primer.html`](docs/double-spike-primer.html). Download it, open it in a
+> browser, and it works with no network at all. (GitHub serves `.html` as source code, so prefer
+> the online copy or a local one over the repository view.)
 >
 > It is written by a beginner, for beginners, with AI assistance, and says so on the first screen.
 > Every number in it is regenerated from this package rather than typed in by hand, and
@@ -74,6 +75,11 @@ python tools/check_primer.py     # verify prose, tables and figures against the 
 produce the final document. `tools/check_primer.py` is the gate: it re-derives every number quoted
 in the prose and every table cell from this package, and exits non-zero if any of them disagree.
 Adding a sentence or a figure therefore means updating the template and the checker together.
+
+GitHub Pages serves the `docs/` folder, so <https://chengkaide.github.io/pyspike/> is the landing
+page. [`docs/index.html`](docs/index.html) is that landing page and is **hand written** -- it is the
+one file in `docs/` that is not generated, and it links to the primer by its filename, so renaming
+the document means editing it too. `tools/check_readme.py` checks its links as well.
 
 ## What is in the box
 

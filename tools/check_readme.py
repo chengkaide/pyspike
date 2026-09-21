@@ -109,13 +109,50 @@ if first_primer is not None:
         "不在引用块里，只是普通段落",
     )
 
-# ---- the primer section must not be described twice -----------------------
-n_desc = text.count("why two spikes are needed")
+# ---- the primer must be linked from exactly one place ---------------------
+# Guards against the description being left behind in a second section, which
+# is what happened when the primer was moved to the top: the old "Documentation"
+# heading stayed put with its own copy of the same paragraph.
+#
+# Two earlier versions of this check were wrong, and both are worth remembering:
+# the first matched an exact English sentence, so it reported a false failure
+# against any README that worded it differently; the second counted the sections
+# that merely *mention* the filename, and tripped over the Testing section, which
+# legitimately names `docs/double-spike-primer.html` in prose.  Counting markdown
+# *links* to it is the distinction that actually matters: prose may name the
+# file, but the reader should be sent there from exactly one place.
+primer_links = [target for _, target in links if target == "docs/double-spike-primer.html"]
 check(
-    n_desc == 1,
-    "primer 的说明只出现一次",
-    f"出现了 {n_desc} 次，说明移动时留下了重复段落",
+    len(primer_links) == 1,
+    "primer 只被链接一处",
+    f"有 {len(primer_links)} 处链接指向 primer，说明移动时留下了重复段落",
 )
+
+# ---- the GitHub Pages landing page ----------------------------------------
+# docs/index.html is the only hand written file in docs/ (everything else there
+# is generated), and it points at the primer by its filename.  Renaming the
+# primer therefore breaks the published site silently -- exactly the failure
+# mode this script exists to catch.  Its own relative links are checked against
+# docs/, not against the repository root.
+LANDING = ROOT / "docs" / "index.html"
+if LANDING.exists():
+    print()
+    print("docs/index.html")
+    page = LANDING.read_text(encoding="utf-8")
+    refs = re.findall(r'(?:href|src)="([^"]+)"', page)
+    refs = [
+        r for r in refs
+        if not r.startswith(("#", "http://", "https://", "mailto:", "data:"))
+    ]
+    check(bool(refs), f"找到 {len(refs)} 个站内引用", "一个都没有，解析逻辑可能失效了")
+    for ref in refs:
+        target = (LANDING.parent / ref.split("#")[0]).resolve()
+        check(target.exists(), f"站内链接 {ref}", f"目标不存在: docs/{ref}")
+    check(
+        'lang="zh-CN"' in page,
+        "落地页标明了中文（与 primer 语言一致）",
+        "primer 是中文的，落地页的 lang 属性应与之一致",
+    )
 
 print()
 print(f"{checked - len(failures)}/{checked} 项通过")
