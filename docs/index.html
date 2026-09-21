@@ -14,9 +14,12 @@
     --ink-faint: #8b8479;
     --line: #e2ddd3;
     --accent: #9c4221;
-    --accent-soft: #f6ece6;
+    --accent-soft: #f8ece5;
+    --good: #1f6f4a;
+    --good-soft: #e7f2ec;
     --code-bg: #f4f1ea;
     --shadow: 0 1px 2px rgba(35, 32, 28, .06), 0 6px 20px rgba(35, 32, 28, .05);
+    --shadow-hi: 0 2px 4px rgba(35, 32, 28, .08), 0 12px 28px rgba(35, 32, 28, .10);
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -27,9 +30,12 @@
       --ink-faint: #8a857c;
       --line: #33363a;
       --accent: #e8a27f;
-      --accent-soft: #2c2320;
+      --accent-soft: #33251f;
+      --good: #74c69d;
+      --good-soft: #1c2b24;
       --code-bg: #23262a;
       --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .25);
+      --shadow-hi: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px rgba(0, 0, 0, .3);
     }
   }
   * { box-sizing: border-box; }
@@ -40,22 +46,30 @@
     font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
           "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   }
-  .wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 4rem; }
+  .wrap { max-width: 48rem; margin: 0 auto; padding: 3.2rem 1.5rem 4rem; }
   h1 { font-size: 1.95rem; line-height: 1.25; margin: 0 0 .35rem; letter-spacing: -.01em; }
-  .sub { color: var(--ink-soft); margin: 0 0 2.2rem; }
+  .sub { color: var(--ink-soft); margin: 0 0 1.8rem; }
   .sub code { font-size: .92em; }
 
+  /* ---------- 图 ---------- */
+  figure { margin: 0 0 2rem; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    color: var(--ink-soft); font-size: .845rem; line-height: 1.65;
+    margin-top: .7rem; padding-left: .1rem;
+  }
+  figcaption b { color: var(--ink); }
+
+  /* ---------- 主行动按钮 ---------- */
   a.cta {
     display: block; text-decoration: none; color: inherit;
     background: var(--panel); border: 1px solid var(--line);
     border-left: 4px solid var(--accent);
     border-radius: 8px; padding: 1.35rem 1.5rem; box-shadow: var(--shadow);
+    margin: 0 0 1rem;
     transition: transform .12s ease, box-shadow .12s ease;
   }
-  a.cta:hover, a.cta:focus-visible {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(35, 32, 28, .08), 0 12px 28px rgba(35, 32, 28, .10);
-  }
+  a.cta:hover, a.cta:focus-visible { transform: translateY(-2px); box-shadow: var(--shadow-hi); }
   .cta .kicker {
     font-size: .78rem; letter-spacing: .09em; text-transform: uppercase;
     color: var(--accent); font-weight: 600; margin-bottom: .5rem;
@@ -63,6 +77,22 @@
   .cta .name { font-size: 1.28rem; font-weight: 650; margin-bottom: .55rem; }
   .cta p { margin: 0; color: var(--ink-soft); font-size: .95rem; }
 
+  /* ---------- 数字条 ---------- */
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem;
+    margin: 0 0 2.8rem;
+  }
+  .stats div {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: .85rem .9rem;
+  }
+  .stats b {
+    display: block; font-size: 1.7rem; line-height: 1.15;
+    letter-spacing: -.02em; color: var(--accent); font-weight: 650;
+  }
+  .stats span { font-size: .8rem; color: var(--ink-soft); }
+
+  /* ---------- 小卡片 ---------- */
   .grid { display: grid; gap: .9rem; margin-top: .9rem; }
   @media (min-width: 34rem) { .grid { grid-template-columns: 1fr 1fr; } }
   .card {
@@ -77,16 +107,32 @@
   h2 {
     font-size: .8rem; letter-spacing: .1em; text-transform: uppercase;
     color: var(--ink-faint); font-weight: 600;
-    margin: 2.6rem 0 .8rem; padding-bottom: .45rem;
+    margin: 2.8rem 0 .9rem; padding-bottom: .45rem;
     border-bottom: 1px solid var(--line);
   }
   ul { margin: 0; padding-left: 1.15rem; color: var(--ink-soft); font-size: .93rem; }
-  li { margin: .3rem 0; }
+  li { margin: .35rem 0; }
   footer {
     margin-top: 3rem; padding-top: 1.1rem; border-top: 1px solid var(--line);
     color: var(--ink-faint); font-size: .83rem; line-height: 1.75;
   }
   footer a { color: var(--ink-soft); }
+
+  /* ---------- 动画：默认状态就是终态，关掉动画也不会缺内容 ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .f  { animation: fade .55s ease both; }
+    .f1 { animation-delay: .05s; }  .f2 { animation-delay: .18s; }
+    .f3 { animation-delay: .31s; }  .f4 { animation-delay: .44s; }
+    .f5 { animation-delay: .57s; }
+    .grow {
+      transform-box: fill-box; transform-origin: left center;
+      animation: grow .8s cubic-bezier(.2, .7, .3, 1) both;
+    }
+    #sigcurve { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.15s ease-out .2s both; }
+  }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
 </style>
 </head>
 <body>
@@ -96,13 +142,249 @@
   <p class="sub">兼 <code>doublespike</code> 工具箱代码导读 ·
      Rudge, Reynolds &amp; Bourdon (2009, <i>Chem. Geol.</i> 265:420–431) 方法的实现</p>
 
-  <a class="cta" href="double-spike-primer.html">
+  <figure class="f f1">
+    <svg viewBox="0 0 680 312" role="img"
+         aria-label="双稀释剂法三部曲：仪器分馏把比值改歪、掺入两个富集同位素、一次反演解出三个未知量"
+         font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+      <rect x="0.5" y="0.5" width="679" height="311" rx="14" fill="var(--panel)" stroke="var(--line)"/>
+
+      <text x="24" y="58" font-size="12.5" font-weight="600" fill="var(--ink)">① 仪器把比值改歪了</text>
+      <line x1="24" y1="70" x2="220" y2="70" stroke="var(--line)"/>
+      <g class="f f2">
+        <rect x="24" y="79" width="10" height="7" fill="none" stroke="var(--ink-faint)" stroke-dasharray="3 2"/>
+        <text x="39" y="86" font-size="9.5" fill="var(--ink-faint)">天然</text>
+        <rect x="76" y="79" width="10" height="7" fill="var(--accent)" opacity="0.85"/>
+        <text x="91" y="86" font-size="9.5" fill="var(--ink-faint)">实测</text>
+      </g>
+      <g class="f f2">
+        <rect x="52"  y="118" width="32" height="88" fill="none" stroke="var(--ink-faint)" stroke-dasharray="4 3"/>
+        <rect x="104" y="168" width="32" height="38" fill="none" stroke="var(--ink-faint)" stroke-dasharray="4 3"/>
+        <rect x="156" y="186" width="32" height="20" fill="none" stroke="var(--ink-faint)" stroke-dasharray="4 3"/>
+      </g>
+      <g class="f f3">
+        <rect x="52"  y="102" width="32" height="104" fill="var(--accent)" opacity="0.85"/>
+        <rect x="104" y="174" width="32" height="32"  fill="var(--accent)" opacity="0.85"/>
+        <rect x="156" y="194" width="32" height="12"  fill="var(--accent)" opacity="0.85"/>
+      </g>
+      <line x1="32" y1="206" x2="212" y2="206" stroke="var(--ink-faint)" stroke-width="1.2"/>
+      <text x="68"  y="222" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)">56</text>
+      <text x="120" y="222" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)">57</text>
+      <text x="172" y="222" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)">58</text>
+      <g class="f f4">
+        <text x="24" y="268" font-size="10.5" fill="var(--ink-soft)">轻的被抬高、重的被压低。</text>
+        <text x="24" y="284" font-size="10.5" fill="var(--ink-soft)">偏了多少（β）没人知道。</text>
+      </g>
+
+      <text x="242" y="58" font-size="12.5" font-weight="600" fill="var(--ink)">② 掺两个富集同位素</text>
+      <line x1="242" y1="70" x2="438" y2="70" stroke="var(--line)"/>
+      <g class="f f2">
+        <rect x="270" y="118" width="32" height="88" fill="none" stroke="var(--ink-faint)" stroke-dasharray="4 3"/>
+        <rect x="322" y="168" width="32" height="38" fill="none" stroke="var(--ink-faint)" stroke-dasharray="4 3"/>
+        <rect x="374" y="186" width="32" height="20" fill="none" stroke="var(--ink-faint)" stroke-dasharray="4 3"/>
+      </g>
+      <g class="f f3">
+        <rect x="270" y="138" width="32" height="68"  fill="var(--accent)" opacity="0.85"/>
+        <rect x="322" y="102" width="32" height="104" fill="var(--accent)" opacity="0.85"/>
+        <rect x="374" y="88"  width="32" height="118" fill="var(--accent)" opacity="0.85"/>
+      </g>
+      <line x1="250" y1="206" x2="430" y2="206" stroke="var(--ink-faint)" stroke-width="1.2"/>
+      <text x="286" y="222" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)">56</text>
+      <text x="338" y="222" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)">57</text>
+      <text x="390" y="222" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)">58</text>
+      <g class="f f4">
+        <text x="242" y="268" font-size="10.5" fill="var(--ink-soft)">57、58 被「抬起来」——</text>
+        <text x="242" y="284" font-size="10.5" fill="var(--ink-soft)">这个图案分馏造不出来。</text>
+      </g>
+
+      <text x="460" y="58" font-size="12.5" font-weight="600" fill="var(--ink)">③ 三个未知量一次解出</text>
+      <line x1="460" y1="70" x2="656" y2="70" stroke="var(--line)"/>
+      <g class="f f2">
+        <rect x="468" y="100" width="180" height="30" rx="7" fill="var(--bg)" stroke="var(--line)"/>
+        <text x="480" y="119" font-size="11.5" fill="var(--ink)">λ　稀释剂占了多少</text>
+      </g>
+      <g class="f f3">
+        <rect x="468" y="138" width="180" height="30" rx="7" fill="var(--accent-soft)" stroke="var(--accent)"/>
+        <text x="480" y="157" font-size="11.5" fill="var(--ink)">α　样品天然分馏</text>
+        <text x="642" y="157" text-anchor="end" font-size="9.5" fill="var(--accent)">要报的</text>
+      </g>
+      <g class="f f4">
+        <rect x="468" y="176" width="180" height="30" rx="7" fill="var(--bg)" stroke="var(--line)"/>
+        <text x="480" y="195" font-size="11.5" fill="var(--ink)">β　仪器分馏</text>
+        <text x="642" y="195" text-anchor="end" font-size="9.5" fill="var(--ink-faint)">要消掉的</text>
+        <polygon points="554,210 562,210 558,218" fill="var(--ink-faint)"/>
+        <rect x="468" y="222" width="180" height="30" rx="7" fill="var(--good-soft)" stroke="var(--good)"/>
+        <text x="558" y="241" text-anchor="middle" font-size="11.5" fill="var(--good)">一次反演解出三个</text>
+      </g>
+      <g class="f f5">
+        <text x="460" y="268" font-size="10.5" fill="var(--ink-soft)">非天然图案「锁」住 λ，</text>
+        <text x="460" y="284" font-size="10.5" fill="var(--ink-soft)">三个量一起解。</text>
+      </g>
+    </svg>
+    <figcaption><b>图 1 · 三分钟看懂它解决什么问题。</b>
+      ① 质谱测到的比值一定被仪器分馏改歪了（虚线是天然图案，实心是实测），偏多少没人知道；
+      ② 掺入两个富集同位素后，混合样出现一个<b>质量分馏造不出来的图案</b>；
+      ③ 这个非天然图案成了"标尺"，让三个未知量（稀释剂比例 λ、样品天然分馏 α、仪器分馏 β）
+      在一次反演里同时解出。要报出去的是 α —— 也就是被歪掉之前的真值。</figcaption>
+  </figure>
+
+  <a class="cta f f5" href="double-spike-primer.html">
     <div class="kicker">从这里开始</div>
     <div class="name">阅读完整入门文档 →</div>
     <p>为什么需要两个稀释剂、实验怎么做、三个未知量从哪来、怎么判断一个稀释剂好不好，
        以及数据文件里<b>全部 33 个同位素体系</b>的双稀释剂排名目录 —— 理想纯稀释剂与
        实际可购买的 Oak Ridge 稀释剂（含杂质）都列了。单文件、完全离线，所有图都内嵌。</p>
   </a>
+
+  <div class="stats">
+    <div><b>33</b><span>个同位素体系</span></div>
+    <div><b>185</b><span>个实际可购稀释剂</span></div>
+    <div><b>476</b><span>组稀释剂组合的完整排名</span></div>
+  </div>
+
+  <figure class="f f2">
+    <svg viewBox="0 0 680 300" role="img"
+         aria-label="Fe 的六对纯稀释剂按误差排序的条形图，最好的与最差的相差八点二倍"
+         font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+      <rect x="0.5" y="0.5" width="679" height="299" rx="14" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="28" y="40" font-size="12.5" fill="var(--ink)">Fe 的 6 对纯稀释剂，按误差排序（ppm/amu，越小越好）</text>
+      <line x1="108" y1="52" x2="108" y2="268" stroke="var(--ink-faint)" stroke-width="1.2"/>
+
+      <text x="100" y="74"  text-anchor="end" font-size="11.5" fill="var(--ink)">56Fe–58Fe</text>
+      <rect class="grow" x="108" y="60"  width="58.5"  height="20" rx="4" fill="var(--good)"/>
+      <text x="174" y="74.5" font-size="10.5" fill="var(--ink-soft)">57.1</text>
+
+      <text x="100" y="110" text-anchor="end" font-size="11.5" fill="var(--ink)">57Fe–58Fe</text>
+      <rect class="grow" x="108" y="96"  width="64.0"  height="20" rx="4" fill="var(--accent)" opacity="0.35"/>
+      <text x="180" y="110.5" font-size="10.5" fill="var(--ink-soft)">62.5</text>
+
+      <text x="100" y="146" text-anchor="end" font-size="11.5" fill="var(--ink)">56Fe–57Fe</text>
+      <rect class="grow" x="108" y="132" width="82.1"  height="20" rx="4" fill="var(--accent)" opacity="0.5"/>
+      <text x="198" y="146.5" font-size="10.5" fill="var(--ink-soft)">80.1</text>
+
+      <text x="100" y="182" text-anchor="end" font-size="11.5" fill="var(--ink)">54Fe–58Fe</text>
+      <rect class="grow" x="108" y="168" width="169.6" height="20" rx="4" fill="var(--accent)" opacity="0.65"/>
+      <text x="286" y="182.5" font-size="10.5" fill="var(--ink-soft)">165.6</text>
+
+      <text x="100" y="218" text-anchor="end" font-size="11.5" fill="var(--ink)">54Fe–56Fe</text>
+      <rect class="grow" x="108" y="204" width="198.1" height="20" rx="4" fill="var(--accent)" opacity="0.8"/>
+      <text x="314" y="218.5" font-size="10.5" fill="var(--ink-soft)">193.3</text>
+
+      <text x="100" y="254" text-anchor="end" font-size="11.5" fill="var(--ink)">54Fe–57Fe</text>
+      <rect class="grow" x="108" y="240" width="480.0" height="20" rx="4" fill="var(--accent)"/>
+      <text x="596" y="254.5" font-size="10.5" fill="var(--ink-soft)">468.5</text>
+
+      <text x="28" y="288" font-size="10.5" fill="var(--ink-soft)">同一份数据、同一套反演，只换稀释剂：最好的与最差的差 8.2 倍。</text>
+    </svg>
+    <figcaption><b>图 2 · 选错稀释剂，精度差一个数量级。</b>
+      教科书上 Fe 的双稀释剂几乎只有 ⁵⁶Fe–⁵⁸Fe 这一个答案，但它不是随便选的：
+      六对组合里最差的 ⁵⁴Fe–⁵⁷Fe 比它差 <b>8.2 倍</b>。Sr 更极端 ——
+      ⁸⁶Sr–⁸⁸Sr 比最优的 ⁸⁴Sr–⁸⁷Sr 差 <b>9.2 倍</b>。
+      这些数字全部来自本仓库的完整排名目录，不是抄来的。</figcaption>
+  </figure>
+
+  <figure class="f f2">
+    <svg viewBox="0 0 680 168" role="img"
+         aria-label="双稀释剂分析的六步流程，其中掺稀释剂必须在化学分离之前"
+         font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+      <rect x="0.5" y="0.5" width="679" height="167" rx="14" fill="var(--panel)" stroke="var(--line)"/>
+
+      <rect x="22"  y="34" width="96" height="64" rx="8" fill="var(--bg)" stroke="var(--line)"/>
+      <text x="70"  y="68" text-anchor="middle" font-size="12" fill="var(--ink)">① 称样</text>
+      <text x="70"  y="86" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">称准两份</text>
+
+      <polyline points="126,62 130,66 126,70" fill="none" stroke="var(--ink-faint)" stroke-width="1.4"/>
+      <rect x="130" y="34" width="96" height="64" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="178" y="68" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">② 掺稀释剂</text>
+      <text x="178" y="86" text-anchor="middle" font-size="9.5" fill="var(--accent)">化学分离之前！</text>
+
+      <polyline points="234,62 238,66 234,70" fill="none" stroke="var(--ink-faint)" stroke-width="1.4"/>
+      <rect x="238" y="34" width="96" height="64" rx="8" fill="var(--bg)" stroke="var(--line)"/>
+      <text x="286" y="68" text-anchor="middle" font-size="12" fill="var(--ink)">③ 溶样·平衡</text>
+      <text x="286" y="86" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">彻底、要等</text>
+
+      <polyline points="342,62 346,66 342,70" fill="none" stroke="var(--ink-faint)" stroke-width="1.4"/>
+      <rect x="346" y="34" width="96" height="64" rx="8" fill="var(--bg)" stroke="var(--line)"/>
+      <text x="394" y="68" text-anchor="middle" font-size="12" fill="var(--ink)">④ 化学分离</text>
+      <text x="394" y="86" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">柱上纯化</text>
+
+      <polyline points="450,62 454,66 450,70" fill="none" stroke="var(--ink-faint)" stroke-width="1.4"/>
+      <rect x="454" y="34" width="96" height="64" rx="8" fill="var(--bg)" stroke="var(--line)"/>
+      <text x="502" y="68" text-anchor="middle" font-size="12" fill="var(--ink)">⑤ 上机测量</text>
+      <text x="502" y="86" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">测 4 个同位素</text>
+
+      <polyline points="558,62 562,66 558,70" fill="none" stroke="var(--ink-faint)" stroke-width="1.4"/>
+      <rect x="562" y="34" width="96" height="64" rx="8" fill="var(--bg)" stroke="var(--line)"/>
+      <text x="610" y="68" text-anchor="middle" font-size="12" fill="var(--ink)">⑥ 反演</text>
+      <text x="610" y="86" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">解 3 个未知量</text>
+
+      <text x="28" y="138" font-size="10.5" fill="var(--ink-soft)">整条链只有一个死线：② 必须在 ④ 之前 —— 稀释剂加晚了，那段分馏无法反演。</text>
+    </svg>
+    <figcaption><b>图 3 · 数学之外，最容易出错的是操作顺序。</b>
+      样品和稀释剂<b>在化学分离之前</b>混合，此后柱化学和仪器造成的分馏都作用在同一个混合体上，
+      可以被一次性反演掉。反过来 —— 先分离再加稀释剂 —— 那些分馏谁也救不回来。
+      这也是本文档反复强调"平衡"的原因：稀释剂没有和样品真正同位素平衡，测到的就不是混合样。</figcaption>
+  </figure>
+
+  <figure class="f f2">
+    <svg viewBox="0 0 680 300" role="img"
+         aria-label="单束流相对精度随束流强度变化的曲线，从 1 伏的 47 ppm 降到 100 伏的 4.5 ppm"
+         font-family="-apple-system, Segoe UI, Microsoft YaHei, sans-serif">
+      <rect x="0.5" y="0.5" width="679" height="299" rx="14" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="28" y="38" font-size="12.5" fill="var(--ink)">单束流相对精度 vs 束流强度（默认误差模型）</text>
+
+      <line x1="70" y1="84.8"  x2="620" y2="84.8"  stroke="var(--line)" stroke-dasharray="3 3"/>
+      <line x1="70" y1="113.6" x2="620" y2="113.6" stroke="var(--line)" stroke-dasharray="3 3"/>
+      <line x1="70" y1="142.4" x2="620" y2="142.4" stroke="var(--line)" stroke-dasharray="3 3"/>
+      <line x1="70" y1="171.2" x2="620" y2="171.2" stroke="var(--line)" stroke-dasharray="3 3"/>
+      <line x1="70" y1="200"   x2="620" y2="200"   stroke="var(--ink-faint)" stroke-width="1.5"/>
+      <line x1="70" y1="56"    x2="70"  y2="200"   stroke="var(--ink-faint)" stroke-width="1.5"/>
+
+      <text x="64" y="60"    text-anchor="end" font-size="10" fill="var(--ink-faint)">50</text>
+      <text x="64" y="88.8"  text-anchor="end" font-size="10" fill="var(--ink-faint)">40</text>
+      <text x="64" y="117.6" text-anchor="end" font-size="10" fill="var(--ink-faint)">30</text>
+      <text x="64" y="146.4" text-anchor="end" font-size="10" fill="var(--ink-faint)">20</text>
+      <text x="64" y="175.2" text-anchor="end" font-size="10" fill="var(--ink-faint)">10</text>
+      <text x="64" y="204"   text-anchor="end" font-size="10" fill="var(--ink-faint)">0</text>
+
+      <text x="70"  y="216" text-anchor="middle" font-size="10" fill="var(--ink-faint)">1</text>
+      <text x="120" y="216" text-anchor="middle" font-size="10" fill="var(--ink-faint)">10</text>
+      <text x="342" y="216" text-anchor="middle" font-size="10" fill="var(--ink-faint)">50</text>
+      <text x="620" y="216" text-anchor="middle" font-size="10" fill="var(--ink-faint)">100</text>
+      <text x="620" y="234" text-anchor="end" font-size="10.5" fill="var(--ink-faint)">束流强度（V）</text>
+      <text x="30" y="128" transform="rotate(-90 30 128)" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)">ppm/amu（单束流）</text>
+
+      <polyline id="sigcurve" pathLength="1" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"
+        points="70.0,64.6 81.5,125.1 92.9,142.5 104.4,151.6 115.8,157.4 127.3,161.5 138.8,164.6 150.2,167.1 161.7,169.1 173.1,170.8 184.6,172.2 196.0,173.5 207.5,174.6 219.0,175.5 230.4,176.4 241.9,177.2 253.3,177.9 264.8,178.5 276.2,179.1 287.7,179.6 299.2,180.1 310.6,180.6 322.1,181.1 333.5,181.5 345.0,181.8 356.5,182.2 367.9,182.5 379.4,182.9 390.8,183.2 402.3,183.5 413.8,183.7 425.2,184.0 436.7,184.2 448.1,184.5 459.6,184.7 471.0,184.9 482.5,185.1 494.0,185.3 505.4,185.5 516.9,185.7 528.3,185.9 539.8,186.1 551.2,186.2 562.7,186.4 574.2,186.5 585.6,186.7 597.1,186.8 608.5,187.0 620.0,187.1"/>
+
+      <g class="f f4">
+        <line x1="120" y1="159" x2="176" y2="111" stroke="var(--accent)" stroke-dasharray="3 3" opacity="0.75"/>
+        <circle cx="120" cy="159" r="4.5" fill="var(--panel)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="182" y="105" font-size="10.5" fill="var(--ink)">10 V 束流 → 14.2 ppm</text>
+      </g>
+
+      <text x="28" y="272" font-size="10.5" fill="var(--ink-soft)">相对精度 ∝ 1/√I —— 束流与积分时间决定精度。</text>
+      <text x="336" y="272" font-size="10.5" fill="var(--ink-soft)">热噪声只占方差的 1%。</text>
+    </svg>
+    <figcaption><b>图 4 · 精度是怎么算出来的，以及怎么才能变好。</b>
+      默认模型下 σ² = <i>a</i> + <i>b</i>·<i>I</i>：<i>a</i> 是电阻热噪声（与信号无关），
+      <i>b</i>·<i>I</i> 是离子计数统计（随信号线性增长）。代入默认参数（300 K、1e11 Ω、积分 8 s），
+      10 V 束流的单束流精度是 <b>14.2 ppm</b> —— 这就是全文档所有 ppm/amu 数字的下限。
+      反直觉的是：计数统计占了 <b>99%</b> 的方差，热噪声只有 1%，
+      所以想让结果更好，靠的是束流强度和积分时间，而不是把仪器搬到更冷的地方。
+      曲线本身由本仓库的误差模型现算，不是示意。</figcaption>
+  </figure>
+
+  <h2>这份文档的可信度</h2>
+  <ul>
+    <li><b>每个数字都是算出来的，不是抄的。</b> 文档里的表格与图全部由仓库内的
+        <code>tools/dspike_catalog.py</code> 重新生成；连本页的四张图也由
+        <code>tools/check_readme.py</code> 重新推导核对，对不上就报错。</li>
+    <li><b>有自动门禁。</b> 入门文档里每一类数字都有断言盯着 —— 结构、计数、手写表对照数据源，
+        以及把"我们算出来是 X"当场重算一遍。不一致就退出非零；几十页表格靠人眼复查不现实。</li>
+    <li><b>该说的局限都说了。</b> 误差只含热噪声与计数统计，真实实验室的重现性通常更差；
+        <code>optimalspike</code> 是局部搜索，排名靠后的组合可能与全局最优差约 1%。</li>
+    <li><b>作者是初学者。</b> 文档面向第一次读这份代码的人，首屏就写明这一点。</li>
+  </ul>
 
   <div class="grid">
     <a class="card" href="https://github.com/chengkaide/pyspike/blob/main/webgui/doublespike-gui.html">
@@ -116,19 +398,9 @@
     </a>
   </div>
 
-  <h2>这份文档的可信度</h2>
-  <ul>
-    <li><b>每个数字都是算出来的，不是抄的。</b> 文档里的表格与图全部由仓库内的
-        <code>tools/dspike_catalog.py</code> 重新生成。</li>
-    <li><b>有自动门禁。</b> <code>tools/check_primer.py</code> 会重新推导正文里引用的每个数字，
-        不一致就退出非零；几十页表格靠人眼复查不现实。</li>
-    <li><b>该说的局限都说了。</b> 误差只含热噪声与计数统计，真实实验室的重现性通常更差；
-        <code>optimalspike</code> 是局部搜索，排名靠后的组合可能与全局最优差约 1%。</li>
-    <li><b>作者是初学者。</b> 文档面向第一次读这份代码的人，首屏就写明这一点。</li>
-  </ul>
-
   <footer>
-    本页与入门文档均为构建产物，不要直接手改：改动请落在
+    <b>本页是手写的</b>（<code>docs/</code> 里唯一手写的文件），改它直接编辑即可。
+    它链接的入门文档则是构建产物，不要手改：改动请落在
     <code>docs/primer_template.html</code>，再依次跑
     <code>tools/dspike_catalog.py</code> → <code>tools/build_primer.py</code> →
     <code>tools/check_primer.py</code>。<br>

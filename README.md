@@ -17,6 +17,12 @@ https://johnrudge.com/doublespike
 >
 > ### Read it online: <https://chengkaide.github.io/pyspike/>
 >
+> ![The double spike method in three steps: the instrument distorts the measured ratios, two enriched isotopes are added, and the three unknowns come out of one inversion](docs/figure-hero.svg)
+>
+> The figure above is generated from the landing page rather than drawn twice:
+> `python tools/make_hero_svg.py` rebuilds it, and [`tools/check_readme.py`](tools/check_readme.py)
+> fails if it ever drifts away from the page it came from.
+>
 > **New to the method, or new to this code? Read this first.** It is the complete introduction:
 > why two spikes are needed at all, how an experiment is actually carried out step by step, where
 > the three unknowns come from, and a ranked catalogue of the double spikes that make sense for
