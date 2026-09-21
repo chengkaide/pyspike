@@ -103,6 +103,7 @@ PYTHONPATH=src python tools/verify.py                  # forward/inverse closure
 PYTHONPATH=src python tools/benchmark.py               # timings
 PYTHONPATH=src python tools/check_against_literature.py # reproduce published optimum spikes
 PYTHONPATH=src python tools/check_primer.py            # the primer vs this package
+python tools/check_readme.py                           # links, code fences and layout of this file
 node webgui/test_math.js                               # the browser code vs this package
 ```
 
@@ -115,6 +116,10 @@ this package: 437 comparisons, all agreeing to better than 1e-12 relative.
 significant figures; the Fe results come back digit for digit.
 `tools/check_primer.py` is the honesty check on the write-up itself: it re-derives the numbers
 quoted in `docs/double-spike-primer.html` and exits non-zero if any of them disagree.
+`tools/check_readme.py` covers this file: it resolves every relative link against the repository,
+checks that the code fences balance, and asserts that the primer is still the first thing a reader
+sees. It takes an optional path, so it can be pointed at a deliberately broken copy to confirm it
+still fails when it should.
 
 ## Changes in 1.1
 
