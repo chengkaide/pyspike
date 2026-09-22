@@ -391,7 +391,7 @@ def singleoptimalspike(
     optprop = p
     optspike = q * spikevector1 + (1 - q) * spikevector2
     opterr, optppmperamu = errorestimate(
-        isodata, p, optspike, isoinv, errorratio, beta, alpha
+        isodata, p, optspike, isoinv, errorratio, alpha, beta
     )
 
     optspikeprop = np.zeros_like(optspike)
